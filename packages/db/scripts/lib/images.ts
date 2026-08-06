@@ -68,6 +68,28 @@ export function createImageStore(localRoot: string): ImageStore {
   return process.env.BLOB_READ_WRITE_TOKEN ? new BlobImageStore() : new LocalImageStore(localRoot);
 }
 
+/// Medidas reales del archivo.
+///
+/// Sin ancho y alto, el navegador no sabe cuanto espacio reservar y la pagina
+/// da un salto cuando la imagen termina de cargar. Eso cuenta como error de
+/// experiencia en Google (Cumulative Layout Shift) y castiga el
+/// posicionamiento, que es justo lo que se busca ganar con este sitio.
+///
+/// Guardarlas tambien es lo que permite servir la version del tamano correcto
+/// para cada pantalla en vez del archivo completo siempre.
+export async function readDimensions(
+  buffer: Buffer,
+): Promise<{ width: number | null; height: number | null }> {
+  try {
+    const sharp = (await import('sharp')).default;
+    const meta = await sharp(buffer).metadata();
+    return { width: meta.width ?? null, height: meta.height ?? null };
+  } catch {
+    // Un archivo ilegible no debe tumbar una importacion de 331 productos.
+    return { width: null, height: null };
+  }
+}
+
 /// Decide si una imagen ya registrada sirve tal cual o hay que volver a
 /// guardarla en el almacenamiento actual.
 ///

@@ -115,6 +115,22 @@ o no `BLOB_READ_WRITE_TOKEN` en el entorno:
 resuelven. Antes de poner el panel en una URL para que alguien más trabaje, hay
 que configurar Blob.
 
+### Tamaños y rendimiento
+
+Las imágenes se guardan una sola vez, en su tamaño de origen, con su ancho y
+alto registrados en la base. No hay campos separados para miniatura y detalle:
+`next/image` genera las variantes que hagan falta y sirve a cada dispositivo la
+del tamaño correcto, además de retrasar la carga de todo lo que está debajo del
+primer pantallazo.
+
+Guardar las medidas no es un detalle: sin ellas el navegador no sabe cuánto
+espacio reservar y la página salta cuando la imagen carga. Google lo mide
+(Cumulative Layout Shift) y castiga el posicionamiento.
+
+Al subir desde el panel, la imagen se reduce a 2000 px de lado máximo y se
+convierte a WebP con calidad 82. Una foto de celular baja alrededor de un 90%
+sin diferencia visible. Las imágenes que ya son pequeñas no se agrandan.
+
 ### Pasar las imágenes locales a Blob
 
 ```bash
@@ -137,7 +153,12 @@ decisión vive en `isInStore()` y tiene pruebas.
 ## Estado actual
 
 - 331 productos importados, todos en borrador
-- 322 imágenes extraídas, 313 SKU con imagen (18 sin ninguna)
+- 318 imágenes extraídas, 309 SKU con imagen (22 sin ninguna)
+- 4 imágenes del Excel venían en formato EMF, que ningún navegador puede
+  mostrar: se ignoran en la importación para que esos productos aparezcan en el
+  filtro *Sin imagen* en vez de dejar un hueco gris en la tienda
+- 201 de las 318 miden menos de 400 px de ancho: sirven de miniatura, no de
+  imagen de ficha
 - 104 productos marcados para revisión, todos por nombre en mayúsculas que hay
   que redactar para la tienda
 - Sin precios: llegan con la lista de precios
