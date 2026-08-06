@@ -1,10 +1,11 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { pluralize } from '@weber/core';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CATALOGS } from '@/lib/catalogos';
 
-export const metadata = { title: 'Catálogos' };
+export const metadata: Metadata = { title: 'Catálogos' };
 export const dynamic = 'force-dynamic';
 
 export default async function CatalogosPage() {
