@@ -100,9 +100,39 @@ con precio mayor a cero.
 
 ## Imágenes
 
-Con `BLOB_READ_WRITE_TOKEN` en el entorno, el importador sube a Vercel Blob.
-Sin el token, escribe en `data/imagenes/` y las apps las sirven por un symlink
-en `public/imagenes`, para poder trabajar sin credenciales.
+Hay dos almacenamientos detrás de la misma interfaz, y se elige solo según haya
+o no `BLOB_READ_WRITE_TOKEN` en el entorno:
+
+| | Sin token (hoy) | Con token |
+| --- | --- | --- |
+| Dónde viven | `data/imagenes/` en tu disco | Vercel Blob |
+| URL en la base | `/imagenes/productos/…` | `https://….blob.vercel-storage.com/…` |
+| Cómo las sirve la app | symlink en `apps/*/public/imagenes` | CDN |
+| Subir desde el panel | No disponible, avisa en pantalla | Sí |
+
+**Las imágenes locales solo existen en la máquina que hizo la importación.**
+`data/` está fuera del repositorio, así que en un despliegue esas URLs no
+resuelven. Antes de poner el panel en una URL para que alguien más trabaje, hay
+que configurar Blob.
+
+### Pasar las imágenes locales a Blob
+
+```bash
+# 1. Crear un Blob store en Vercel y copiar el token a .env
+BLOB_READ_WRITE_TOKEN="vercel_blob_rw_…"
+
+# 2. Reimportar: sube las imágenes y actualiza sus URLs
+pnpm import:inventario
+```
+
+El importador detecta que las imágenes registradas viven en disco y las sube,
+actualizando el registro existente en lugar de crear uno nuevo. El reporte lo
+dice: `0 imágenes nuevas, 0 ya existentes, 322 movidas a la nube`.
+
+Esto importa porque el fallo sería silencioso: la ruta interna es idéntica en
+disco y en la nube, así que sin esa comprobación el importador diría "322 ya
+existentes" con toda normalidad y las dejaría apuntando a una ruta muerta. La
+decisión vive en `isInStore()` y tiene pruebas.
 
 ## Estado actual
 

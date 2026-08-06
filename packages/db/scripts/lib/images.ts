@@ -68,6 +68,17 @@ export function createImageStore(localRoot: string): ImageStore {
   return process.env.BLOB_READ_WRITE_TOKEN ? new BlobImageStore() : new LocalImageStore(localRoot);
 }
 
+/// Decide si una imagen ya registrada sirve tal cual o hay que volver a
+/// guardarla en el almacenamiento actual.
+///
+/// La ruta (blobPath) es identica en disco y en la nube, asi que no distingue
+/// nada: lo que cambia es la URL. Una imagen local apunta a /imagenes/... , que
+/// no existe en un servidor desplegado. Sin esta comprobacion, configurar el
+/// token y reimportar dejaria las 322 imagenes apuntando a una ruta muerta.
+export function isInStore(url: string, storeKind: 'blob' | 'local'): boolean {
+  return url.startsWith('https://') === (storeKind === 'blob');
+}
+
 /// Nombre estable derivado del contenido. Reimportar el mismo Excel produce
 /// exactamente las mismas rutas, asi que no se acumulan copias.
 export function imageKey(sku: string, buffer: Buffer, extension: string, index: number): string {
