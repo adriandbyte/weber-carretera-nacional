@@ -108,14 +108,36 @@ en `public/imagenes`, para poder trabajar sin credenciales.
 
 - 331 productos importados, todos en borrador
 - 322 imágenes extraídas, 313 SKU con imagen (18 sin ninguna)
-- 105 productos marcados para revisión (casi todos por nombre en mayúsculas
-  que hay que redactar para la tienda)
+- 104 productos marcados para revisión, todos por nombre en mayúsculas que hay
+  que redactar para la tienda
 - Sin precios: llegan con la lista de precios
+
+El panel ya permite editar producto completo: contenido, clasificación con
+dropdowns, SEO, imágenes y estado de publicación. Un producto no se puede
+publicar sin descripción e imagen.
+
+## Acceso al panel
+
+El panel va detrás de una contraseña compartida (HTTP Basic). Se activa con
+`ADMIN_PASSWORD`:
+
+```bash
+ADMIN_PASSWORD="la-clave" pnpm --filter @weber/admin dev
+```
+
+Sin esa variable el panel queda abierto, que es lo cómodo en local. En un
+despliegue, faltar la clave hace que responda 503 en lugar de quedar expuesto.
+
+No es un sistema de usuarios y no pretende serlo: sirve para que alguien pueda
+entrar a limpiar el catálogo sin que el panel esté abierto al mundo. Cuando
+toque el login real (Auth.js con usuarios y roles) se reemplaza
+`apps/admin/src/middleware.ts` y nada más, porque ninguna página sabe cómo se
+autentica.
 
 ## Pendiente
 
-- CRUD completo en el admin (hoy solo hay lectura)
-- Fichas de producto y páginas de categoría en la tienda
-- Formularios de contacto y B2B conectados a `Lead`
-- Login (Auth.js) antes de exponer el admin en una URL pública
+- Catálogos editables desde el panel (hoy solo se leen)
+- Páginas de contenido, prospectos y configuración del panel
+- Tienda pública: fichas de producto y páginas de categoría
+- Login con usuarios (Auth.js)
 - Carrito y órdenes

@@ -7,6 +7,17 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+/// Solo aparece cuando el panel esta sin contraseña. Al configurarla, el aviso
+/// desaparece solo: un banner que sigue ahi cuando ya no aplica deja de leerse.
+function AccessNotice() {
+  if (process.env.ADMIN_PASSWORD) return null;
+  return (
+    <div className="bg-ember-500 px-6 py-2 text-sm font-medium text-white">
+      Panel sin contraseña. Configura ADMIN_PASSWORD antes de ponerlo en una URL pública.
+    </div>
+  );
+}
+
 const NAV = [
   { href: '/', label: 'Resumen' },
   { href: '/productos', label: 'Productos' },
@@ -36,10 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </nav>
           </aside>
           <div className="min-w-0 flex-1">
-            {/* Recordatorio permanente hasta que se implemente el login. */}
-            <div className="bg-ember-500 px-6 py-2 text-sm font-medium text-white">
-              Sin autenticación. No publiques este panel en una URL pública todavía.
-            </div>
+            <AccessNotice />
             <main className="p-8">{children}</main>
           </div>
         </div>
