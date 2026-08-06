@@ -148,9 +148,22 @@ toque el login real (Auth.js con usuarios y roles) se reemplaza
 `apps/admin/src/middleware.ts` y nada más, porque ninguna página sabe cómo se
 autentica.
 
+## Catálogos
+
+Las siete listas que alimentan los menús desplegables de la ficha (tipos,
+combustibles, series, formatos, colores, tamaños y categorías) se editan desde
+`/catalogos`. Comparten forma, así que hay una sola pantalla en lugar de siete:
+el registro está en `apps/admin/src/lib/catalogos.ts` y agregar un catálogo
+nuevo es agregar una entrada ahí.
+
+Cada opción muestra cuántos productos la usan. **Una opción en uso no se puede
+eliminar**: los productos que la tienen se quedarían sin ese dato y el error no
+aparecería hasta semanas después, al filtrar en la tienda. En su lugar se
+oculta, y deja de aparecer en los menús sin afectar lo ya capturado. La guarda
+vive en el servidor, no solo en la pantalla.
+
 ## Pendiente
 
-- Catálogos editables desde el panel (hoy solo se leen)
 - Páginas de contenido, prospectos y configuración del panel
 - Tienda pública: fichas de producto y páginas de categoría
 - Login con usuarios (Auth.js)

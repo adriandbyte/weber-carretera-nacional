@@ -79,10 +79,18 @@ export default async function ProductosPage({
     <div>
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h1 className="font-display text-2xl font-bold text-carbon-900">Productos</h1>
-        <p className="text-sm text-carbon-400">
-          {pluralize(total, 'producto')}
-          {totalPages > 1 && ` · página ${page} de ${totalPages}`}
-        </p>
+        <div className="flex items-center gap-4">
+          <p className="text-sm text-carbon-400">
+            {pluralize(total, 'producto')}
+            {totalPages > 1 && ` · página ${page} de ${totalPages}`}
+          </p>
+          <a
+            href="/productos/nuevo"
+            className="rounded-md bg-carbon-900 px-3 py-2 text-sm font-medium text-white hover:bg-carbon-700"
+          >
+            Nuevo producto
+          </a>
+        </div>
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">

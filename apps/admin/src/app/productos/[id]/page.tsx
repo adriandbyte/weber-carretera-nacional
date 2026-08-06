@@ -3,6 +3,8 @@ import { prisma } from '@weber/db';
 import { deleteImage, saveProduct, setPrimaryImage, uploadImage } from './actions';
 import { ProductForm } from './product-form';
 import { ImageManager } from './image-manager';
+import { DangerZone } from './danger-zone';
+import { deleteProduct } from '../nuevo/actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -111,6 +113,12 @@ export default async function ProductoPage({ params }: { params: Promise<{ id: s
           }}
         />
       </div>
+
+      <DangerZone
+        sku={product.sku}
+        canDelete={product.publishedAt === null}
+        action={deleteProduct.bind(null, product.id)}
+      />
     </div>
   );
 }
