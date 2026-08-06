@@ -20,7 +20,7 @@ import { PrismaClient } from '@prisma/client';
 import { readInventory } from './lib/excel.js';
 import { normalizeRow } from './lib/normalize.js';
 import { seedCatalogs } from './lib/catalogs.js';
-import { contentTypeFor, createImageStore, imageKey } from './lib/images.js';
+import { contentTypeFor, createImageStore, imageKey, isInStore } from './lib/images.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(here, '../../..');
@@ -117,6 +117,7 @@ async function main() {
 
   let savedImages = 0;
   let reusedImages = 0;
+  let movedImages = 0;
 
   for (const [sku, group] of bySku) {
     const product = await prisma.product.findUnique({
@@ -128,17 +129,33 @@ async function main() {
     for (const [index, image] of group.entries()) {
       const key = imageKey(sku, image.buffer, image.extension, index);
 
-      // El key lleva el hash del contenido, asi que si ya existe es
-      // literalmente el mismo archivo y no hay nada que volver a subir.
+      // El key lleva el hash del contenido, asi que una coincidencia es
+      // literalmente el mismo archivo.
       const already = await prisma.productImage.findFirst({
         where: { productId: product.id, blobPath: key },
       });
-      if (already) {
+
+      // Pero coincidir no basta: hay que comprobar que viva en el
+      // almacenamiento que se esta usando ahora. Ver isInStore.
+      if (already !== null && isInStore(already.url, store.kind)) {
         reusedImages += 1;
         continue;
       }
 
       const stored = await store.save(key, image.buffer, contentTypeFor(image.extension));
+
+      if (already) {
+        // Migracion entre almacenamientos: se actualiza el registro que ya
+        // existe en lugar de crear uno nuevo, que dejaria el producto con la
+        // misma foto dos veces.
+        await prisma.productImage.update({
+          where: { id: already.id },
+          data: { url: stored.url, blobPath: stored.blobPath },
+        });
+        movedImages += 1;
+        continue;
+      }
+
       await prisma.productImage.create({
         data: {
           productId: product.id,
@@ -153,7 +170,10 @@ async function main() {
     }
   }
 
-  console.log(`  ${savedImages} imagenes nuevas, ${reusedImages} ya existentes`);
+  console.log(
+    `  ${savedImages} imagenes nuevas, ${reusedImages} ya existentes` +
+      (movedImages > 0 ? `, ${movedImages} movidas a ${store.kind === 'blob' ? 'la nube' : 'disco'}` : ''),
+  );
 
   // --- Reporte final -----------------------------------------------------
   const sinImagen = products.filter((p) => !bySku.has(p.sku));
