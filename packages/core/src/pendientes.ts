@@ -81,7 +81,9 @@ export function findPending(product: ProductSnapshot): PendingItem[] {
         'Reescríbelo en español, como se lo dirías a alguien en mostrador. ' +
         'Conserva el modelo y quita los códigos de región (US/CA/MX) y las ' +
         'abreviaturas de almacén (LP, SS, BLK, CVR).',
-      blocking: false,
+      // Impide publicar: sacar un codigo de almacen como titulo de producto es
+      // exactamente lo que se quiere evitar, y es lo primero que ve Google.
+      blocking: true,
     });
   }
 

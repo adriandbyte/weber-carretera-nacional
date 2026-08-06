@@ -67,10 +67,21 @@ const incompleto = findPending({
 });
 const bloqueantes = incompleto.filter((i) => i.blocking).map((i) => i.key).sort();
 check(
-  'los bloqueantes son descripcion corta, imagen, categoria y tipo',
+  'los bloqueantes son los campos con asterisco en el formulario',
   bloqueantes.join(','),
   'categoria,descripcion-corta,imagen,tipo',
 );
+
+// Un nombre sin redactar tambien impide publicar: es lo primero que ve Google.
+const crudo = findPending({
+  name: '22" MASTER TOUCH GBS IVORY CA',
+  shortDescription: 'Algo',
+  description: 'Algo',
+  imageCount: 1,
+  categoryCount: 1,
+  hasProductType: true,
+});
+check('un nombre sin redactar impide publicar', crudo[0]?.blocking, true);
 check(
   'la descripcion completa no impide publicar',
   incompleto.find((i) => i.key === 'descripcion')?.blocking,

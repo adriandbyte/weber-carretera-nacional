@@ -40,6 +40,11 @@ En la ficha, los campos marcados con **\*** son los obligatorios para publicar:
 | **Tipo de producto \*** | Clasificación |
 | **Categorías del menú \*** | Clasificación, al menos una |
 
+El nombre además tiene que estar **redactado**, no basta con que esté lleno: un
+producto no se puede publicar mientras conserve el código interno de Weber. Es
+lo primero que ve Google, así que sacarlo tal cual sería justo lo contrario de
+lo que se busca.
+
 La **descripción completa** no lleva asterisco: no impide publicar, pero sin
 ella la ficha del producto queda muy pobre y conviene escribirla.
 
@@ -63,6 +68,10 @@ arriba aparece una caja naranja que lo dice en concreto, por ejemplo:
 >
 > **Falta la descripción completa** — Medidas, materiales, qué incluye y
 > garantía.
+
+Los pendientes vienen en dos grupos: **los obligatorios para publicar**, en la
+caja naranja, y **los recomendados**, en la caja blanca de abajo. Los del primer
+grupo son exactamente los campos marcados con `*` en el formulario.
 
 Cada punto desaparece al resolverlo y guardar. Cuando la caja se pone verde y
 dice *"Este producto está completo"*, ya solo queda desmarcar la casilla.
