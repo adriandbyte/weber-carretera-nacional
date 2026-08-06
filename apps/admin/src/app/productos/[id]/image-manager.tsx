@@ -47,10 +47,13 @@ export function ImageManager({
   return (
     <section className="rounded-card border border-carbon-200 bg-white p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="font-display text-lg font-semibold text-carbon-900">Imágenes</h2>
+        <h2 className="font-display text-lg font-semibold text-carbon-900">
+          Imágenes
+          <span className="ml-0.5 text-ember-600">*</span>
+        </h2>
         <p className="text-sm text-carbon-400">
           {images.length === 0
-            ? 'Sin imágenes'
+            ? 'Sin imágenes · hace falta al menos una para publicar'
             : `${images.length} ${images.length === 1 ? 'imagen' : 'imágenes'}`}
         </p>
       </div>

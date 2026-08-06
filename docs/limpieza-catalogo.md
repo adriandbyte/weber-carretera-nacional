@@ -30,13 +30,21 @@ la página aparezca en las búsquedas por encima de la competencia.**
 
 ## Qué significa que un producto esté "limpio"
 
-Un producto cuenta como listo cuando tiene las tres cosas:
+En la ficha, los campos marcados con **\*** son los obligatorios para publicar:
 
-| | Qué es | Dónde se llena |
-| --- | --- | --- |
-| **1. Nombre en español** | Cómo se lo dirías a alguien en mostrador | Contenido → Nombre |
-| **2. Descripción** | Qué es, para quién y qué incluye | Contenido → Descripción corta y completa |
-| **3. Imagen** | Al menos una foto | Sección Imágenes, arriba |
+| Campo | Dónde está |
+| --- | --- |
+| **Nombre \*** | Contenido |
+| **Descripción corta \*** | Contenido |
+| **Imágenes \*** | Arriba de todo, al menos una |
+| **Tipo de producto \*** | Clasificación |
+| **Categorías del menú \*** | Clasificación, al menos una |
+
+La **descripción completa** no lleva asterisco: no impide publicar, pero sin
+ella la ficha del producto queda muy pobre y conviene escribirla.
+
+Sin esos campos el producto **se puede guardar como borrador**, así que se
+puede dejar a medias y volver después. Lo que no se puede es publicarlo.
 
 Y además, que esté **desmarcada la casilla "Sigue pendiente de revisión"**, que
 es la forma de decir "yo ya revisé este".

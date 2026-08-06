@@ -88,6 +88,12 @@ export function ProductForm({
         </div>
       )}
 
+      <p className="mb-4 text-xs text-carbon-400">
+        Los campos marcados con <span className="font-medium text-ember-600">*</span> son
+        obligatorios para publicar. Sin ellos el producto se puede guardar como borrador, pero no
+        sale a la tienda.
+      </p>
+
       <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         {/* --- Columna principal ------------------------------------------ */}
         <div className="space-y-6">
@@ -110,6 +116,7 @@ export function ProductForm({
               <TextArea
                 name="shortDescription"
                 label="Descripción corta"
+                required
                 rows={3}
                 defaultValue={values.shortDescription}
                 errors={errors.shortDescription}
@@ -137,6 +144,7 @@ export function ProductForm({
               <SelectField
                 name="productTypeId"
                 label="Tipo de producto"
+                required
                 options={catalogs.productTypes}
                 value={productTypeId}
                 onChange={setProductTypeId}
@@ -188,6 +196,7 @@ export function ProductForm({
               <CheckboxGroup
                 name="categoryIds"
                 label="Categorías del menú"
+                required
                 options={catalogs.categories}
                 selected={values.categoryIds}
                 errors={errors.categoryIds}
@@ -240,7 +249,8 @@ export function ProductForm({
                   </p>
                 ))}
                 <p className="mt-1.5 text-xs text-carbon-400">
-                  Para publicar hace falta descripción e imagen.
+                  Para publicar hacen falta todos los campos marcados con{' '}
+                  <span className="font-medium text-ember-600">*</span>.
                 </p>
               </div>
 
