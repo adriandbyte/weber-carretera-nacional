@@ -112,9 +112,23 @@ en `public/imagenes`, para poder trabajar sin credenciales.
   que redactar para la tienda
 - Sin precios: llegan con la lista de precios
 
-El panel ya permite editar producto completo: contenido, clasificación con
-dropdowns, SEO, imágenes y estado de publicación. Un producto no se puede
-publicar sin descripción e imagen.
+## Qué se captura y qué se calcula
+
+El panel solo muestra lo que una persona tiene que decidir. Todo lo demás se
+resuelve en el servidor, en `apps/admin/src/app/productos/[id]/actions.ts`:
+
+| Campo | Cómo se resuelve |
+| --- | --- |
+| URL del producto | Se deriva del nombre mientras el producto no se haya publicado. Al publicarse queda fija: ya circula en enlaces y está indexada. |
+| Título y resumen para buscadores | Se derivan del nombre y la descripción corta. |
+| Marca | Todo el catálogo es Weber. Se conserva sin tocarse. |
+| Existencias | El inventario llega después. Se conserva sin tocarse. |
+
+La regla detrás de esto: un campo que quien captura no necesita decidir no
+debería estar en la pantalla. Solo agrega ruido y formas nuevas de equivocarse.
+Por eso "Compatible con" tampoco aparece en asadores, únicamente en accesorios.
+
+Un producto no se puede publicar sin descripción e imagen.
 
 ## Acceso al panel
 

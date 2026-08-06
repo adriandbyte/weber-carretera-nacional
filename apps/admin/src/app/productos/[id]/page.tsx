@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 export default async function ProductoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const [product, brands, productTypes, fuelTypes, series, formats, colors, sizes, categories] =
+  const [product, productTypes, fuelTypes, series, formats, colors, sizes, categories] =
     await Promise.all([
       prisma.product.findUnique({
         where: { id },
@@ -31,8 +31,11 @@ export default async function ProductoPage({ params }: { params: Promise<{ id: s
       // Solo id y name cruzan al componente de cliente. Una fila completa
       // arrastra Decimal y Date, que React no puede serializar y que rompen
       // la hidratacion del formulario en silencio.
-      prisma.brand.findMany({ where: { active: true }, orderBy: { position: 'asc' }, select: OPTION }),
-      prisma.productType.findMany({ where: { active: true }, orderBy: { position: 'asc' }, select: OPTION }),
+      prisma.productType.findMany({
+        where: { active: true },
+        orderBy: { position: 'asc' },
+        select: { ...OPTION, slug: true },
+      }),
       prisma.fuelType.findMany({ where: { active: true }, orderBy: { position: 'asc' }, select: OPTION }),
       prisma.series.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: OPTION }),
       prisma.format.findMany({ where: { active: true }, orderBy: { position: 'asc' }, select: OPTION }),
@@ -44,6 +47,12 @@ export default async function ProductoPage({ params }: { params: Promise<{ id: s
   if (!product) notFound();
 
   const pendingCount = await prisma.product.count({ where: { needsReview: true } });
+
+  // "Compatible con" solo aplica a lo que acompaña a un asador. Mostrar 17
+  // casillas de series en la ficha de un asador es ruido puro.
+  const equipmentTypeIds = productTypes
+    .filter((type) => ['asador', 'ahumador', 'plancha'].includes(type.slug))
+    .map((type) => type.id);
 
   return (
     <div>
@@ -75,11 +84,10 @@ export default async function ProductoPage({ params }: { params: Promise<{ id: s
       <div className="mt-6">
         <ProductForm
           action={saveProduct.bind(null, product.id)}
-          catalogs={{ brands, productTypes, fuelTypes, series, formats, colors, sizes, categories }}
+          catalogs={{ productTypes, fuelTypes, series, formats, colors, sizes, categories }}
+          equipmentTypeIds={equipmentTypeIds}
           values={{
-            sku: product.sku,
             name: product.name,
-            slug: product.slug,
             shortDescription: product.shortDescription,
             description: product.description,
             status: product.status,
@@ -90,8 +98,6 @@ export default async function ProductoPage({ params }: { params: Promise<{ id: s
             // si el dato se guardo bien.
             price: product.price?.toFixed(2) ?? null,
             compareAtPrice: product.compareAtPrice?.toFixed(2) ?? null,
-            stock: product.stock,
-            brandId: product.brandId,
             productTypeId: product.productTypeId,
             fuelTypeId: product.fuelTypeId,
             seriesId: product.seriesId,
@@ -100,12 +106,8 @@ export default async function ProductoPage({ params }: { params: Promise<{ id: s
             sizeId: product.sizeId,
             categoryIds: product.categories.map((c) => c.categoryId),
             compatibleSeriesIds: product.compatibility.map((c) => c.seriesId),
-            metaTitle: product.metaTitle,
-            metaDescription: product.metaDescription,
             needsReview: product.needsReview,
             reviewNote: product.reviewNote,
-            rawCategory: product.rawCategory,
-            rawSubcategory: product.rawSubcategory,
           }}
         />
       </div>

@@ -15,7 +15,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma, Prisma } from '@weber/db';
-import { productSchema } from '@weber/core';
+import { productSchema, slugify } from '@weber/core';
 import { del, put } from '@vercel/blob';
 
 export interface FormState {
@@ -26,6 +26,32 @@ export interface FormState {
 
 const toDecimal = (value: string | null) => (value === null ? null : new Prisma.Decimal(value));
 
+/// Corta sin partir palabras a la mitad, que en un resultado de Google se ve
+/// como un error tipografico.
+function truncate(value: string, max: number): string {
+  if (value.length <= max) return value;
+  const cut = value.slice(0, max);
+  const lastSpace = cut.lastIndexOf(' ');
+  return (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd();
+}
+
+/// Convierte el nombre en direccion web y resuelve choques.
+///
+/// Dos productos pueden llamarse igual de forma legitima: el mismo modelo en
+/// dos medidas suele compartir nombre hasta que alguien lo redacta completo.
+/// En ese caso el SKU los desempata, en vez de rechazar el guardado y dejar a
+/// quien captura sin entender que hizo mal.
+async function deriveSlug(name: string, sku: string, productId: string): Promise<string> {
+  const base = slugify(name);
+  if (!base) return '';
+
+  const taken = await prisma.product.findFirst({
+    where: { slug: base, id: { not: productId } },
+    select: { id: true },
+  });
+  return taken ? `${base}-${sku.toLowerCase()}` : base;
+}
+
 export async function saveProduct(
   productId: string,
   _prev: FormState,
@@ -33,14 +59,11 @@ export async function saveProduct(
 ): Promise<FormState> {
   const parsed = productSchema.safeParse({
     name: formData.get('name') ?? '',
-    slug: formData.get('slug') ?? '',
     shortDescription: formData.get('shortDescription') ?? '',
     description: formData.get('description') ?? '',
     status: formData.get('status') ?? 'DRAFT',
     price: formData.get('price') ?? '',
     compareAtPrice: formData.get('compareAtPrice') ?? '',
-    stock: formData.get('stock') ?? '',
-    brandId: formData.get('brandId') ?? '',
     productTypeId: formData.get('productTypeId') ?? '',
     fuelTypeId: formData.get('fuelTypeId') ?? '',
     seriesId: formData.get('seriesId') ?? '',
@@ -49,8 +72,6 @@ export async function saveProduct(
     sizeId: formData.get('sizeId') ?? '',
     categoryIds: formData.getAll('categoryIds').map(String),
     compatibleSeriesIds: formData.getAll('compatibleSeriesIds').map(String),
-    metaTitle: formData.get('metaTitle') ?? '',
-    metaDescription: formData.get('metaDescription') ?? '',
     needsReview: formData.get('needsReview') === 'on',
   });
 
@@ -64,17 +85,27 @@ export async function saveProduct(
 
   const data = parsed.data;
 
-  // El slug es la URL del producto en la tienda. Dos productos con el mismo
-  // slug se pisarian, asi que se avisa en vez de dejar que reviente Postgres.
-  const slugTaken = await prisma.product.findFirst({
-    where: { slug: data.slug, id: { not: productId } },
-    select: { sku: true },
+  const current = await prisma.product.findUnique({
+    where: { id: productId },
+    select: { sku: true, slug: true, publishedAt: true },
   });
-  if (slugTaken) {
+  if (!current) return { ok: false, message: 'El producto ya no existe.' };
+
+  // --- URL del producto --------------------------------------------------
+  //
+  // Nunca se captura a mano: no aparece en el panel. Quien limpia el catalogo
+  // escribe el nombre y la direccion se acomoda sola.
+  //
+  //   Sin publicar  la URL sigue al nombre. No hay enlaces que romper.
+  //   Publicado     la URL se congela aunque cambie el nombre. Ya circula en
+  //                 enlaces y esta indexada; moverla tira lo ganado.
+  const slug = current.publishedAt === null ? await deriveSlug(data.name, current.sku, productId) : current.slug;
+
+  if (!slug) {
     return {
       ok: false,
-      message: 'Esa URL ya está en uso.',
-      errors: { slug: [`El SKU ${slugTaken.sku} ya usa esta URL. Escribe otra.`] },
+      message: 'El nombre debe tener letras o números.',
+      errors: { name: ['Escribe un nombre con letras o números'] },
     };
   }
 
@@ -99,22 +130,29 @@ export async function saveProduct(
       where: { id: productId },
       data: {
         name: data.name,
-        slug: data.slug,
+        slug,
+        // Se sella la primera vez que sale a la tienda. A partir de ahi la
+        // URL queda fija aunque cambie el nombre.
+        publishedAt:
+          data.status === 'ACTIVE' && current.publishedAt === null ? new Date() : undefined,
         shortDescription: data.shortDescription,
         description: data.description,
         status: data.status,
         price: toDecimal(data.price),
         compareAtPrice: toDecimal(data.compareAtPrice),
-        stock: data.stock,
-        brandId: data.brandId,
         productTypeId: data.productTypeId,
         fuelTypeId: data.fuelTypeId,
         seriesId: data.seriesId,
         formatId: data.formatId,
         colorId: data.colorId,
         sizeId: data.sizeId,
-        metaTitle: data.metaTitle,
-        metaDescription: data.metaDescription,
+        // brandId y stock no se tocan: no estan en la pantalla, asi que
+        // conservan el valor que ya tenian.
+        // Los textos para buscadores se derivan de lo que si se captura. Un
+        // campo de SEO en blanco es peor que uno generado: quien limpia el
+        // catalogo no tiene por que saber que escribir ahi.
+        metaTitle: truncate(data.name, 70),
+        metaDescription: data.shortDescription ? truncate(data.shortDescription, 160) : null,
         needsReview: data.needsReview,
         // La nota del importador deja de tener sentido una vez revisado.
         reviewNote: data.needsReview ? undefined : null,

@@ -55,33 +55,33 @@ const optionalMoney = z
 
 export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+/// Solo lo que se captura a mano en el panel.
+///
+/// Deliberadamente NO estan aqui:
+///   slug          se deriva del nombre (ver deriveSlug en las acciones)
+///   metaTitle     se derivan del nombre y la descripcion corta
+///   metaDescription
+///   brandId       todo el catalogo es Weber
+///   stock         el inventario llega mucho despues
+///
+/// Todos ellos se calculan o se conservan en el servidor. Un campo que la
+/// persona que captura no necesita decidir no deberia estar en la pantalla:
+/// solo agrega ruido y formas nuevas de equivocarse.
 export const productSchema = z.object({
   name: z
     .string()
     .trim()
     .min(3, 'El nombre debe tener al menos 3 caracteres')
     .max(200, 'Máximo 200 caracteres'),
-  slug: z
-    .string()
-    .trim()
-    .min(3, 'La URL debe tener al menos 3 caracteres')
-    .max(120, 'Máximo 120 caracteres')
-    .regex(SLUG_PATTERN, 'Solo minúsculas, números y guiones. Ejemplo: asador-genesis-e-315'),
   shortDescription: optionalText(300),
   description: optionalText(5000),
 
   status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED', 'DISCONTINUED']),
 
-  // Precio y stock se capturan mucho despues. Se aceptan vacios sin protestar.
+  // El precio llega meses despues. Se acepta vacio sin protestar.
   price: optionalMoney,
   compareAtPrice: optionalMoney,
-  stock: z
-    .string()
-    .trim()
-    .transform((v) => (v === '' ? 0 : Number(v)))
-    .refine((v) => Number.isInteger(v) && v >= 0, 'Debe ser un número entero de 0 o más'),
 
-  brandId: optionalId,
   productTypeId: optionalId,
   fuelTypeId: optionalId,
   seriesId: optionalId,
@@ -91,9 +91,6 @@ export const productSchema = z.object({
 
   categoryIds: z.array(z.string()).default([]),
   compatibleSeriesIds: z.array(z.string()).default([]),
-
-  metaTitle: optionalText(70),
-  metaDescription: optionalText(160),
 
   /// Se apaga a mano cuando el producto ya quedo revisado.
   needsReview: z.boolean().default(false),
