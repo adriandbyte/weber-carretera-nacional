@@ -24,4 +24,20 @@
   --color-steel-700: #4c5666;
 
   --radius-card: 0.75rem;
+
+  /* La tipografia se declara aqui y no en un preset de JavaScript: Tailwind v4
+     lee su configuracion del CSS, asi que un tailwind.config.ts con estos mismos
+     tokens no lo aplicaria nadie.
+
+     `--font-geist-sans` lo inyecta next/font desde el layout. `display` es de
+     momento la pila del sistema: la tipografia de marca todavia no esta
+     decidida y una fuente web de relleno solo costaria descargas. */
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-display: Georgia, 'Times New Roman', serif;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+  }
 }
