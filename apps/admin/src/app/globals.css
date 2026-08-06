@@ -1,27 +1,219 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
 
-@theme {
-  --color-carbon-50: #f6f6f5;
-  --color-carbon-100: #e7e7e5;
-  --color-carbon-200: #c9c9c5;
-  --color-carbon-300: #a3a39d;
-  --color-carbon-400: #6f6f69;
-  --color-carbon-500: #4a4a45;
-  --color-carbon-600: #33332f;
-  --color-carbon-700: #242421;
-  --color-carbon-800: #171715;
-  --color-carbon-900: #0d0d0c;
+@custom-variant dark (&:is(.dark *));
 
-  --color-ember-100: #ffe0d4;
-  --color-ember-300: #ff8b62;
-  --color-ember-500: #d9400f;
-  --color-ember-600: #b22f09;
-  --color-ember-700: #8a2407;
+/* ---------------------------------------------------------------------------
+   Tokens semanticos.
 
-  --color-steel-100: #f0f2f4;
-  --color-steel-300: #c4ccd2;
-  --color-steel-500: #8892a0;
-  --color-steel-700: #4c5666;
+   Todo el panel se pinta con estos nombres y ninguno con un color literal.
+   Esa es la unica razon por la que el modo oscuro funciona sin repasar cada
+   pantalla: un `bg-white` suelto seguiria siendo blanco de noche y se llevaria
+   por delante el contraste del texto que va encima.
 
-  --radius-card: 0.75rem;
+   Los cuatro colores con significado:
+     primary      la marca. Weber es ese rojo. Acciones principales.
+     destructive  borrar y errores. Rojo distinto a proposito: si "guardar" y
+                  "eliminar" comparten color, tarde o temprano se confunden.
+     warning      lo que falta por hacer. Ambar, no rojo: pendiente no es error.
+     success      lo que ya esta listo o publicado.
+--------------------------------------------------------------------------- */
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-heading: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-muted: var(--warning-muted);
+  --color-warning-border: var(--warning-border);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-muted: var(--success-muted);
+  --color-success-border: var(--success-border);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-photo: var(--photo);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --radius: 0.625rem;
+
+  /* Neutros calidos, no grises azulados: acompañan al rojo de la marca en vez
+     de pelearse con el. */
+  --background: #f7f7f5;
+  --foreground: #131311;
+  --card: #ffffff;
+  --card-foreground: #131311;
+  --popover: #ffffff;
+  --popover-foreground: #131311;
+
+  --primary: #d9400f;
+  --primary-foreground: #ffffff;
+  --secondary: #ededea;
+  --secondary-foreground: #242421;
+  --muted: #f1f1ee;
+  --muted-foreground: #6f6f69;
+  --accent: #f1f1ee;
+  --accent-foreground: #242421;
+
+  --destructive: #b3261e;
+  --destructive-foreground: #ffffff;
+
+  --warning: #a4560a;
+  --warning-foreground: #ffffff;
+  --warning-muted: #fdf5e7;
+  --warning-border: #f0d9ac;
+
+  --success: #15803d;
+  --success-foreground: #ffffff;
+  --success-muted: #eef9f1;
+  --success-border: #bfe4cb;
+
+  --border: #e3e3df;
+  --input: #dcdcd7;
+  --ring: #d9400f;
+
+  /* Fondo de las fotos de producto. Weber las entrega recortadas sobre blanco,
+     y casi todos sus asadores son negros: sobre una superficie oscura la foto
+     desaparece. Por eso este token es claro tambien en modo oscuro, y por eso
+     es un token propio y no `card`. */
+  --photo: #ffffff;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #131311;
+  --sidebar-primary: #d9400f;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f1f1ee;
+  --sidebar-accent-foreground: #242421;
+  --sidebar-border: #e3e3df;
+  --sidebar-ring: #d9400f;
+
+  --chart-1: #d9400f;
+  --chart-2: #a4560a;
+  --chart-3: #15803d;
+  --chart-4: #6f6f69;
+  --chart-5: #242421;
+}
+
+.dark {
+  --background: #100f0e;
+  --foreground: #f2f1ee;
+  --card: #191817;
+  --card-foreground: #f2f1ee;
+  --popover: #1d1c1a;
+  --popover-foreground: #f2f1ee;
+
+  /* El rojo de marca se aclara: el mismo #d9400f sobre fondo casi negro pierde
+     legibilidad en el texto que lleva encima. */
+  --primary: #e8491a;
+  --primary-foreground: #ffffff;
+  --secondary: #262523;
+  --secondary-foreground: #f2f1ee;
+  --muted: #232220;
+  --muted-foreground: #a3a29c;
+  --accent: #2b2a27;
+  --accent-foreground: #f2f1ee;
+
+  --destructive: #e5534b;
+  --destructive-foreground: #1a0b0a;
+
+  --warning: #f0b429;
+  --warning-foreground: #1a1204;
+  --warning-muted: #241a0b;
+  --warning-border: #4b3717;
+
+  --success: #4ade80;
+  --success-foreground: #06210f;
+  --success-muted: #0f2418;
+  --success-border: #1f4a31;
+
+  --border: #ffffff1f;
+  --input: #ffffff2b;
+  --ring: #e8491a;
+
+  /* Claro a proposito. Ligeramente apagado respecto al blanco puro para que
+     una cuadricula de miniaturas no deslumbre sobre el fondo oscuro. */
+  --photo: #eceae6;
+
+  --sidebar: #161514;
+  --sidebar-foreground: #f2f1ee;
+  --sidebar-primary: #e8491a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #262523;
+  --sidebar-accent-foreground: #f2f1ee;
+  --sidebar-border: #ffffff1f;
+  --sidebar-ring: #e8491a;
+
+  --chart-1: #e8491a;
+  --chart-2: #f0b429;
+  --chart-3: #4ade80;
+  --chart-4: #a3a29c;
+  --chart-5: #f2f1ee;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply font-sans;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Sin esto el navegador dibuja los desplegables nativos y las casillas con
+     el tema del sistema: en modo oscuro salen blancos y parecen un fallo. */
+  :root {
+    color-scheme: light;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
 }

@@ -11,7 +11,7 @@ apps/
 packages/
   db/           Prisma: esquema, cliente, importadores y seed
   core/         Lógica compartida entre las dos apps
-  config/       tsconfig, Tailwind y ESLint compartidos
+  config/       tsconfig y ESLint compartidos
 data/            (fuera del repositorio, ver abajo)
   fuentes/      Los Excel originales del cliente
   imagenes/     Imágenes extraídas del Excel (solo modo local)
@@ -199,6 +199,70 @@ toque el login real (Auth.js con usuarios y roles) se reemplaza
 `apps/admin/src/middleware.ts` y nada más, porque ninguna página sabe cómo se
 autentica.
 
+## Interfaz del panel
+
+El panel usa [shadcn/ui](https://ui.shadcn.com) sobre Tailwind v4. Los
+componentes se copian al repositorio (`apps/admin/src/components/ui/`), no se
+instalan como dependencia: se pueden editar, y de hecho hay tres añadidos que
+no vienen del registro (variantes `warning` y `success` en `alert` y `badge`, y
+`native-select`).
+
+Para traer uno nuevo:
+
+```bash
+cd apps/admin && pnpm dlx shadcn@latest add <componente>
+```
+
+### Colores
+
+Todo se pinta con tokens semánticos definidos en `apps/admin/src/app/globals.css`
+y **ningún color literal**. Es la única razón por la que el modo oscuro funciona
+sin repasar cada pantalla: un `bg-white` suelto seguiría siendo blanco de noche.
+
+| Token | Para qué |
+| --- | --- |
+| `primary` | La marca. Weber es ese rojo. Acciones principales. |
+| `destructive` | Borrar y errores. Rojo distinto a propósito: si "guardar" y "eliminar" comparten color, tarde o temprano se confunden. |
+| `warning` | Lo que falta por hacer. Ámbar, no rojo: pendiente no es error. |
+| `success` | Lo que ya está listo o publicado. |
+| `photo` | Fondo de las fotos de producto. **Claro también en modo oscuro**: Weber las entrega recortadas sobre blanco y casi todos sus asadores son negros. |
+
+El tema se elige en la barra lateral (claro, oscuro o el del sistema) y lo
+recuerda `next-themes` en `localStorage`.
+
+### Avisos
+
+El resultado de un Server Action sale como notificación flotante
+(`sonner`), a través de `useActionToast`. Los errores de campo siguen junto a su
+campo; solo el mensaje general se va al aviso, que es el que no tiene dónde
+vivir: en la ficha de producto, que mide dos pantallas, el recuadro de antes
+aparecía fuera de la vista y el usuario creía que no había guardado.
+
+### Desplegables
+
+Los `<select>` son nativos (`native-select`), no el Select de Radix. Todos los
+formularios se envían con Server Actions y FormData, y el nativo viaja en el
+envío sin inputs ocultos, admite el valor vacío que necesita "Sin especificar"
+(Radix lo reserva para limpiar la selección) y abre el selector del sistema en
+móvil. El costo es no poder pintar la lista desplegada.
+
+### La ficha de producto
+
+Dos columnas: contenido y clasificación a la izquierda, y a la derecha
+imágenes, publicación y precio. Clasificación se queda en la columna ancha
+porque lleva las casillas de categorías y las diecisiete series de "Compatible
+con" a tres columnas; en una columna estrecha se vuelve una lista de
+veinticinco filas.
+
+`ImageManager` vive **dentro** de ese `<form>`, así que no puede usar `<form>`
+propios: anidar un formulario dentro de otro no es HTML válido. Llama a los
+Server Actions directamente desde el cliente con `useTransition`. De paso
+desapareció el input de archivo nativo, que mostraba "Choose File / No file
+chosen" en inglés porque ese texto lo pone el navegador y no se puede traducir.
+
+Como el gestor llega como pieza ya construida (prop `media`), el formulario no
+necesita saber nada de imágenes.
+
 ## Catálogos
 
 Las siete listas que alimentan los menús desplegables de la ficha (tipos,
@@ -212,6 +276,25 @@ eliminar**: los productos que la tienen se quedarían sin ese dato y el error no
 aparecería hasta semanas después, al filtrar en la tienda. En su lugar se
 oculta, y deja de aparecer en los menús sin afectar lo ya capturado. La guarda
 vive en el servidor, no solo en la pantalla.
+
+## La tienda pública y los buscadores
+
+La tienda se sirve estática y se regenera sola (ISR), que es lo que le da
+velocidad y posicionamiento sin desplegar cada vez que se publica un producto.
+Encima de eso hay tres piezas que Google espera encontrar:
+
+| Pieza | Dónde | Qué hace |
+| --- | --- | --- |
+| `robots.txt` | `apps/web/src/app/robots.ts` | Permite el rastreo y anuncia el sitemap |
+| `sitemap.xml` | `apps/web/src/app/sitemap.ts` | Sale de la base y **solo lista lo publicado**: anunciar una URL que responde 404 es la forma más rápida de que el archivo deje de tomarse en serio |
+| Canónicas y Open Graph | `apps/web/src/app/layout.tsx` | Necesitan `metadataBase`; sin ella las URLs salen relativas y las tarjetas al compartir se rompen |
+
+Las tres leen la dirección del sitio del mismo sitio (`apps/web/src/lib/site.ts`,
+`NEXT_PUBLIC_SITE_URL`). Si el sitemap anunciara un dominio y la canónica otro,
+Google se queda con el que quiera.
+
+El panel, al revés, declara `noindex` en su layout: nunca debe aparecer en una
+búsqueda.
 
 ## Pendiente
 
