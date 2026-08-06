@@ -15,7 +15,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma, Prisma } from '@weber/db';
-import { productSchema, slugify } from '@weber/core';
+import { findPending, productSchema, slugify } from '@weber/core';
 import { del, put } from '@vercel/blob';
 
 export interface FormState {
@@ -109,17 +109,33 @@ export async function saveProduct(
     };
   }
 
-  // No se puede publicar un producto vacio: quedaria en la tienda sin nada que
-  // mostrar. Es la unica regla de negocio que bloquea el guardado.
+  // No se puede publicar un producto incompleto: quedaria en la tienda sin
+  // nada que mostrar, o sin aparecer en ninguna seccion.
+  //
+  // La regla no se escribe aqui: se consulta la misma lista de pendientes que
+  // ve la persona en pantalla. Cuando estaban separadas, la pantalla marcaba
+  // como obligatorias cosas que el guardado no comprobaba.
   if (data.status === 'ACTIVE') {
-    const images = await prisma.productImage.count({ where: { productId } });
-    const faltantes: string[] = [];
-    if (!data.shortDescription && !data.description) faltantes.push('una descripción');
-    if (images === 0) faltantes.push('al menos una imagen');
-    if (faltantes.length > 0) {
+    const [imageCount, categoryCount] = await Promise.all([
+      prisma.productImage.count({ where: { productId } }),
+      Promise.resolve(data.categoryIds.length),
+    ]);
+
+    const blocking = findPending({
+      name: data.name,
+      shortDescription: data.shortDescription,
+      description: data.description,
+      imageCount,
+      categoryCount,
+      hasProductType: data.productTypeId !== null,
+    }).filter((item) => item.blocking);
+
+    if (blocking.length > 0) {
       return {
         ok: false,
-        message: `Para publicar falta ${faltantes.join(' y ')}. Guárdalo como borrador mientras tanto.`,
+        message:
+          `Para publicar falta ${blocking.map((b) => b.missing).join(', ')}. ` +
+          'Guárdalo como borrador mientras tanto.',
         errors: { status: ['No se puede publicar todavía'] },
       };
     }

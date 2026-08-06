@@ -55,5 +55,33 @@ const listo = findPending({
 });
 check('un producto completo no tiene pendientes', listo.length, 0);
 
+// Los puntos que impiden publicar son los que llevan asterisco en el
+// formulario. Si esta lista cambia, hay que mover el asterisco tambien.
+const incompleto = findPending({
+  name: 'Asador de prueba bien redactado',
+  shortDescription: null,
+  description: null,
+  imageCount: 0,
+  categoryCount: 0,
+  hasProductType: false,
+});
+const bloqueantes = incompleto.filter((i) => i.blocking).map((i) => i.key).sort();
+check(
+  'los bloqueantes son descripcion corta, imagen, categoria y tipo',
+  bloqueantes.join(','),
+  'categoria,descripcion-corta,imagen,tipo',
+);
+check(
+  'la descripcion completa no impide publicar',
+  incompleto.find((i) => i.key === 'descripcion')?.blocking,
+  false,
+);
+// El texto enumerable tiene que servir dentro de una frase.
+check(
+  'los textos enumerables se leen corridos',
+  `Para publicar falta ${incompleto.filter((i) => i.blocking).map((i) => i.missing).join(', ')}.`,
+  'Para publicar falta la descripción corta, una imagen, una categoría del menú, el tipo de producto.',
+);
+
 console.log(fallos === 0 ? '\nTodas las pruebas pasan' : `\n${fallos} fallas`);
 process.exit(fallos === 0 ? 0 : 1);
