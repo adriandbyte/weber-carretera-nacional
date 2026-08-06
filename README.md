@@ -11,7 +11,7 @@ apps/
 packages/
   db/           Prisma: esquema, cliente, importadores y seed
   core/         Lógica compartida entre las dos apps
-  config/       tsconfig, Tailwind y ESLint compartidos
+  config/       tsconfig y ESLint compartidos
 data/            (fuera del repositorio, ver abajo)
   fuentes/      Los Excel originales del cliente
   imagenes/     Imágenes extraídas del Excel (solo modo local)
@@ -276,6 +276,25 @@ eliminar**: los productos que la tienen se quedarían sin ese dato y el error no
 aparecería hasta semanas después, al filtrar en la tienda. En su lugar se
 oculta, y deja de aparecer en los menús sin afectar lo ya capturado. La guarda
 vive en el servidor, no solo en la pantalla.
+
+## La tienda pública y los buscadores
+
+La tienda se sirve estática y se regenera sola (ISR), que es lo que le da
+velocidad y posicionamiento sin desplegar cada vez que se publica un producto.
+Encima de eso hay tres piezas que Google espera encontrar:
+
+| Pieza | Dónde | Qué hace |
+| --- | --- | --- |
+| `robots.txt` | `apps/web/src/app/robots.ts` | Permite el rastreo y anuncia el sitemap |
+| `sitemap.xml` | `apps/web/src/app/sitemap.ts` | Sale de la base y **solo lista lo publicado**: anunciar una URL que responde 404 es la forma más rápida de que el archivo deje de tomarse en serio |
+| Canónicas y Open Graph | `apps/web/src/app/layout.tsx` | Necesitan `metadataBase`; sin ella las URLs salen relativas y las tarjetas al compartir se rompen |
+
+Las tres leen la dirección del sitio del mismo sitio (`apps/web/src/lib/site.ts`,
+`NEXT_PUBLIC_SITE_URL`). Si el sitemap anunciara un dominio y la canónica otro,
+Google se queda con el que quiera.
+
+El panel, al revés, declara `noindex` en su layout: nunca debe aparecer en una
+búsqueda.
 
 ## Pendiente
 
