@@ -120,7 +120,7 @@ export function ImageManager({
           className="text-sm text-carbon-600 file:mr-3 file:rounded-md file:border-0 file:bg-carbon-100 file:px-3 file:py-2 file:text-sm file:text-carbon-700 hover:file:bg-carbon-200"
         />
         <UploadButton />
-        <p className="text-xs text-carbon-400">PNG, JPG o WebP. Máximo 8 MB.</p>
+        <p className="text-xs text-carbon-400">PNG, JPG o WebP. Se reduce y optimiza sola.</p>
       </form>
     </section>
   );

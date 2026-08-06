@@ -41,9 +41,27 @@ Un producto cuenta como listo cuando tiene las tres cosas:
 Y además, que esté **desmarcada la casilla "Sigue pendiente de revisión"**, que
 es la forma de decir "yo ya revisé este".
 
-El panel lleva la cuenta solo. En **Resumen** aparece una barra de avance que
-sube conforme se completan productos, y tres tarjetas que llevan directo a lo
-que falta.
+**No hace falta adivinar qué le falta a cada producto.** Al abrir cualquiera,
+arriba aparece una caja naranja que lo dice en concreto, por ejemplo:
+
+> **Faltan 3 cosas en este producto**
+>
+> **El nombre es el código interno de Weber** — Reescríbelo en español, como se
+> lo dirías a alguien en mostrador. Conserva el modelo y quita los códigos de
+> región (US/CA/MX) y las abreviaturas de almacén (LP, SS, BLK, CVR).
+>
+> **Falta la descripción corta** · *impide publicar* — Una o dos frases: qué
+> es, para cuántas personas y qué lo hace distinto.
+>
+> **Falta la descripción completa** — Medidas, materiales, qué incluye y
+> garantía.
+
+Cada punto desaparece al resolverlo y guardar. Cuando la caja se pone verde y
+dice *"Este producto está completo"*, ya solo queda desmarcar la casilla.
+
+El panel además lleva la cuenta general: en **Resumen** hay una barra de avance
+que sube conforme se completan productos, y tres tarjetas que llevan directo a
+lo que falta.
 
 > **Los precios no son parte de esto.** Llegan después con la lista del
 > proveedor y se cargan de golpe. Si el campo de precio está vacío, está bien.

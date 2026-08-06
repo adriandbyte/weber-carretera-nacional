@@ -1,9 +1,11 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@weber/db';
+import { findPending } from '@weber/core';
 import { deleteImage, saveProduct, setPrimaryImage, uploadImage } from './actions';
 import { ProductForm } from './product-form';
 import { ImageManager } from './image-manager';
 import { DangerZone } from './danger-zone';
+import { PendingList } from './pending-list';
 import { deleteProduct } from '../nuevo/actions';
 
 export const dynamic = 'force-dynamic';
@@ -50,6 +52,15 @@ export default async function ProductoPage({ params }: { params: Promise<{ id: s
 
   const pendingCount = await prisma.product.count({ where: { needsReview: true } });
 
+  const pending = findPending({
+    name: product.name,
+    shortDescription: product.shortDescription,
+    description: product.description,
+    imageCount: product.images.length,
+    categoryCount: product.categories.length,
+    hasProductType: product.productTypeId !== null,
+  });
+
   // "Compatible con" solo aplica a lo que acompaña a un asador. Mostrar 17
   // casillas de series en la ficha de un asador es ruido puro.
   const equipmentTypeIds = productTypes
@@ -66,14 +77,13 @@ export default async function ProductoPage({ params }: { params: Promise<{ id: s
           <h1 className="mt-1 font-display text-2xl font-bold text-carbon-900">{product.name}</h1>
           <p className="mt-1 text-sm text-carbon-400">SKU {product.sku}</p>
         </div>
-        {product.needsReview && product.reviewNote && (
-          <p className="max-w-sm rounded-card border border-ember-300 bg-ember-100 px-4 py-3 text-sm text-ember-700">
-            <span className="font-semibold">Pendiente:</span> {product.reviewNote}
-            <span className="mt-1 block text-xs">
-              Quedan {pendingCount} productos por revisar.
-            </span>
-          </p>
-        )}
+        <p className="text-sm text-carbon-400">
+          Quedan {pendingCount} productos por revisar
+        </p>
+      </div>
+
+      <div className="mb-6">
+        <PendingList items={pending} />
       </div>
 
       <ImageManager
