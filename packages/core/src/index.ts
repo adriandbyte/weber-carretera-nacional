@@ -2,3 +2,4 @@
 // TypeScript y su resolvedor no reescribe .js a .ts.
 export * from './format';
 export * from './schemas';
+export * from './pendientes';
