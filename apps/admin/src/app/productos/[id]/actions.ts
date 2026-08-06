@@ -198,8 +198,31 @@ export async function toggleReview(productId: string, reviewed: boolean) {
 
 // --- Imagenes --------------------------------------------------------------
 
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+
+/// Lado maximo que se guarda. Una foto de celular llega con 4000 px o mas y
+/// nadie va a ver un asador a ese tamaño ni en pantalla completa. Guardarla
+/// tal cual solo hace lenta la pagina y cara la factura de almacenamiento.
+const MAX_EDGE = 2000;
+
+/// Se normaliza todo a WebP: pesa alrededor de un tercio menos que JPEG con la
+/// misma calidad visible y lo entienden todos los navegadores actuales. Ademas
+/// deja un solo formato en la tienda en vez de una mezcla de PNG y JPEG.
+async function prepareUpload(file: File) {
+  const sharp = (await import('sharp')).default;
+  const original = Buffer.from(await file.arrayBuffer());
+
+  const pipeline = sharp(original)
+    // withoutEnlargement: una imagen que ya es chica no se estira, porque
+    // agrandar no agrega detalle, solo peso.
+    .resize({ width: MAX_EDGE, height: MAX_EDGE, fit: 'inside', withoutEnlargement: true })
+    .webp({ quality: 82 });
+
+  const buffer = await pipeline.toBuffer();
+  const meta = await sharp(buffer).metadata();
+  return { buffer, width: meta.width ?? null, height: meta.height ?? null };
+}
 
 export async function uploadImage(
   productId: string,
@@ -214,7 +237,7 @@ export async function uploadImage(
     return { ok: false, message: 'Solo se aceptan imágenes PNG, JPG o WebP.' };
   }
   if (file.size > MAX_IMAGE_BYTES) {
-    return { ok: false, message: 'La imagen no debe pesar más de 8 MB.' };
+    return { ok: false, message: 'La imagen no debe pesar más de 12 MB.' };
   }
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     return {
@@ -229,12 +252,18 @@ export async function uploadImage(
   });
   if (!product) return { ok: false, message: 'El producto ya no existe.' };
 
-  const extension = file.name.split('.').pop()?.toLowerCase() ?? 'png';
-  const stored = await put(
-    `productos/${product.sku}-${Date.now()}.${extension}`,
-    await file.arrayBuffer(),
-    { access: 'public', contentType: file.type, addRandomSuffix: false },
-  );
+  let prepared;
+  try {
+    prepared = await prepareUpload(file);
+  } catch {
+    return { ok: false, message: 'No se pudo leer la imagen. ¿Está dañada?' };
+  }
+
+  const stored = await put(`productos/${product.sku}-${Date.now()}.webp`, prepared.buffer, {
+    access: 'public',
+    contentType: 'image/webp',
+    addRandomSuffix: false,
+  });
 
   await prisma.productImage.create({
     data: {
@@ -244,11 +273,21 @@ export async function uploadImage(
       alt: product.name,
       position: product._count.images,
       isPrimary: product._count.images === 0,
+      width: prepared.width,
+      height: prepared.height,
     },
   });
 
   revalidatePath(`/productos/${productId}`);
-  return { ok: true, message: 'Imagen agregada.' };
+
+  const ahorro = Math.round((1 - prepared.buffer.length / file.size) * 100);
+  return {
+    ok: true,
+    message:
+      ahorro > 5
+        ? `Imagen agregada y optimizada (${ahorro}% más ligera).`
+        : 'Imagen agregada.',
+  };
 }
 
 export async function deleteImage(formData: FormData) {

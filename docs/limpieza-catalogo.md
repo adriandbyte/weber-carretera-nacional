@@ -125,8 +125,18 @@ Si falta una opción en cualquiera de esos menús, se agrega en la sección
 Se sube arrastrando el archivo o con el botón. La primera imagen es la portada,
 y se puede cambiar con "Usar de portada".
 
-322 productos ya traen su foto del Excel. **18 no traen ninguna** y hay que
-conseguirla antes de poder publicarlos.
+318 productos ya traen su foto del Excel. **22 no traen ninguna** y hay que
+conseguirla antes de poder publicarlos. Están todos juntos en el filtro
+*Sin imagen*.
+
+Al subir una foto nueva no hace falta prepararla: el panel la reduce y la
+optimiza sola. Una foto de celular de 4000 píxeles se guarda a 2000 y pesa
+alrededor de un 90% menos, sin diferencia visible en pantalla.
+
+Un aviso sobre la calidad de lo que hay: **201 de las 318 imágenes importadas
+miden menos de 400 píxeles de ancho.** Sirven como miniatura en el listado,
+pero se van a ver borrosas en la ficha del producto. Vale la pena pedirle a
+Weber los archivos en alta resolución por SKU.
 
 ---
 
@@ -172,7 +182,7 @@ media página de descripción. Lo importante aquí es **marcar bien "Compatible
 con"**, porque es lo que permite que el cliente encuentre el accesorio correcto
 para su asador.
 
-### Paso 5 · Los 18 sin imagen
+### Paso 5 · Los 22 sin imagen
 
 Se dejan para el final porque dependen de conseguir la foto.
 

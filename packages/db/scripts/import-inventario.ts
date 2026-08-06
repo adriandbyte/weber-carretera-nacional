@@ -20,7 +20,13 @@ import { PrismaClient } from '@prisma/client';
 import { readInventory } from './lib/excel.js';
 import { normalizeRow } from './lib/normalize.js';
 import { seedCatalogs } from './lib/catalogs.js';
-import { contentTypeFor, createImageStore, imageKey, isInStore } from './lib/images.js';
+import {
+  contentTypeFor,
+  createImageStore,
+  imageKey,
+  isInStore,
+  readDimensions,
+} from './lib/images.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(here, '../../..');
@@ -33,9 +39,15 @@ async function main() {
   const file = process.argv[2] ?? DEFAULT_FILE;
   console.log(`Leyendo ${path.basename(file)}`);
 
-  const { rows, images, skippedRows } = await readInventory(file);
+  const { rows, images, skippedRows, unsupported } = await readInventory(file);
   const products = rows.map(normalizeRow);
   console.log(`  ${rows.length} productos, ${images.length} imagenes, ${skippedRows} filas sin SKU`);
+  if (unsupported.length > 0) {
+    console.log(
+      `  ${unsupported.length} imagenes ignoradas por formato no soportado en navegador ` +
+        `(${unsupported.map((u) => `${u.sku}:${u.extension}`).join(', ')})`,
+    );
+  }
 
   console.log('Sembrando catalogos');
   const ids = await seedCatalogs(prisma);
@@ -136,11 +148,14 @@ async function main() {
       });
 
       // Pero coincidir no basta: hay que comprobar que viva en el
-      // almacenamiento que se esta usando ahora. Ver isInStore.
-      if (already !== null && isInStore(already.url, store.kind)) {
+      // almacenamiento que se esta usando ahora, y que tenga sus medidas
+      // guardadas. Ver isInStore y readDimensions.
+      if (already !== null && isInStore(already.url, store.kind) && already.width !== null) {
         reusedImages += 1;
         continue;
       }
+
+      const size = await readDimensions(image.buffer);
 
       const stored = await store.save(key, image.buffer, contentTypeFor(image.extension));
 
@@ -150,7 +165,7 @@ async function main() {
         // misma foto dos veces.
         await prisma.productImage.update({
           where: { id: already.id },
-          data: { url: stored.url, blobPath: stored.blobPath },
+          data: { url: stored.url, blobPath: stored.blobPath, ...size },
         });
         movedImages += 1;
         continue;
@@ -164,6 +179,7 @@ async function main() {
           alt: product.name,
           position: index,
           isPrimary: index === 0,
+          ...size,
         },
       });
       savedImages += 1;

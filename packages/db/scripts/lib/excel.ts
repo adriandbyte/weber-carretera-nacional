@@ -22,7 +22,16 @@ export interface InventoryFile {
   images: SheetImage[];
   /// Filas descartadas por no traer SKU, para poder reportarlas.
   skippedRows: number;
+  /// Imagenes en formatos que el navegador no puede mostrar.
+  unsupported: { sku: string; extension: string }[];
 }
+
+/// Formatos que un navegador puede mostrar. Excel acepta pegar EMF y WMF
+/// (metarchivos de Windows), que se ven bien dentro de la hoja pero que
+/// ningun navegador sabe dibujar. Importarlos daria un producto con imagen
+/// segun la base y un hueco gris en la tienda, que es peor que no tener
+/// ninguna: al menos "sin imagen" sale en el filtro y alguien la consigue.
+const WEB_FORMATS = ['png', 'jpeg', 'jpg', 'gif', 'webp'];
 
 const HEADER_ROW = 1;
 const COL_SKU = 2;
@@ -77,6 +86,7 @@ export async function readInventory(filePath: string): Promise<InventoryFile> {
   });
 
   const images: SheetImage[] = [];
+  const unsupported: { sku: string; extension: string }[] = [];
   for (const anchored of sheet.getImages()) {
     // range.tl.nativeRow es 0-based y apunta a la esquina superior de la
     // imagen; las filas de ExcelJS son 1-based.
@@ -87,12 +97,18 @@ export async function readInventory(filePath: string): Promise<InventoryFile> {
     const media = workbook.getImage(Number(anchored.imageId));
     if (!media?.buffer) continue;
 
+    const extension = (media.extension ?? 'png').toLowerCase();
+    if (!WEB_FORMATS.includes(extension)) {
+      unsupported.push({ sku, extension });
+      continue;
+    }
+
     images.push({
       sku,
-      extension: media.extension ?? 'png',
+      extension,
       buffer: Buffer.from(media.buffer as ArrayBuffer),
     });
   }
 
-  return { rows, images, skippedRows };
+  return { rows, images, skippedRows, unsupported };
 }
