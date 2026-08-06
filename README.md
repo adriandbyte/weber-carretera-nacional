@@ -164,7 +164,14 @@ vive en el servidor, no solo en la pantalla.
 
 ## Pendiente
 
-- Páginas de contenido, prospectos y configuración del panel
+Las tres secciones que faltan solo tienen sentido cuando exista la tienda
+pública, así que ni siquiera aparecen en el menú del panel todavía:
+
+- **Contenido**: las páginas de Grill Academy, Ubicación, B2B y Contacto. El
+  seed ya creó las cuatro con sus bloques; falta la pantalla para editarlas.
+- **Prospectos**: los formularios del sitio. Sin sitio publicado nunca llega
+  ninguno.
+- **Configuración**: WhatsApp, horarios y redes. Solo los consume la tienda.
 - Tienda pública: fichas de producto y páginas de categoría
 - Login con usuarios (Auth.js)
 - Carrito y órdenes
