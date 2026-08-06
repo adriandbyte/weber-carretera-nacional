@@ -18,13 +18,13 @@ function AccessNotice() {
   );
 }
 
+/// Solo lo que existe. Contenido, Prospectos y Configuracion se agregan
+/// cuando tengan pantalla: un enlace que lleva a un 404 hace dudar de todo lo
+/// demas que hay en la pantalla.
 const NAV = [
   { href: '/', label: 'Resumen' },
   { href: '/productos', label: 'Productos' },
   { href: '/catalogos', label: 'Catálogos' },
-  { href: '/contenido', label: 'Contenido' },
-  { href: '/prospectos', label: 'Prospectos' },
-  { href: '/configuracion', label: 'Configuración' },
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
