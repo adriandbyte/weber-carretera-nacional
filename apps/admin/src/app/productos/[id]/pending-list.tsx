@@ -1,4 +1,7 @@
+import { CircleCheck, Lightbulb, TriangleAlert } from 'lucide-react';
 import type { PendingItem } from '@weber/core';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 /// Lo que le falta a este producto, en lenguaje de quien lo va a resolver.
 ///
@@ -19,59 +22,75 @@ export function PendingList({ items }: { items: PendingItem[] }) {
 
   if (items.length === 0) {
     return (
-      <p className="rounded-card border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-        <span className="font-semibold">Este producto está completo.</span> Si ya lo revisaste,
-        desmarca abajo &ldquo;Sigue pendiente de revisión&rdquo; y guarda.
-      </p>
+      <Alert variant="success">
+        <CircleCheck />
+        <AlertTitle>Este producto está completo.</AlertTitle>
+        <AlertDescription>
+          Si ya lo revisaste, desmarca abajo &ldquo;Sigue pendiente de revisión&rdquo; y guarda.
+        </AlertDescription>
+      </Alert>
     );
   }
 
   return (
     <div className="space-y-3">
       {blocking.length > 0 && (
-        <section className="rounded-card border border-ember-300 bg-ember-100 p-5">
-          <h2 className="text-sm font-semibold text-ember-700">
-            {blocking.length === 1
-              ? 'Falta un campo obligatorio para publicar'
-              : `Faltan ${blocking.length} campos obligatorios para publicar`}
-          </h2>
-          <p className="mt-0.5 text-xs text-ember-700/80">
-            Son los marcados con <span className="font-semibold">*</span> en el formulario.
-          </p>
+        <Card className="border border-warning-border bg-warning-muted ring-0">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-warning">
+              <TriangleAlert className="size-4 shrink-0" />
+              {blocking.length === 1
+                ? 'Falta un campo obligatorio para publicar'
+                : `Faltan ${blocking.length} campos obligatorios para publicar`}
+            </CardTitle>
+          </CardHeader>
 
-          <ul className="mt-3 space-y-3">
-            {blocking.map((item) => (
-              <li key={item.key} className="text-sm">
-                <p className="font-medium text-ember-700">{item.title}</p>
-                <p className="mt-0.5 text-carbon-600">{item.action}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
+          <CardContent>
+            <ul className="space-y-3">
+              {blocking.map((item) => (
+                <li key={item.key}>
+                  <p className="font-medium text-warning">{item.title}</p>
+                  <p className="mt-0.5 text-muted-foreground">{item.action}</p>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 text-xs text-warning/80">
+              Son los marcados con <span className="font-semibold">*</span> en el formulario.
+            </p>
+          </CardContent>
+        </Card>
       )}
 
       {suggested.length > 0 && (
-        <section className="rounded-card border border-carbon-200 bg-white p-5">
-          <h2 className="text-sm font-semibold text-carbon-700">
-            Recomendado, no impide publicar
-          </h2>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-muted-foreground">
+              <Lightbulb className="size-4 shrink-0" />
+              Recomendado, no impide publicar
+            </CardTitle>
+          </CardHeader>
 
-          <ul className="mt-3 space-y-3">
-            {suggested.map((item) => (
-              <li key={item.key} className="text-sm">
-                <p className="font-medium text-carbon-700">{item.title}</p>
-                <p className="mt-0.5 text-carbon-500">{item.action}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
+          <CardContent>
+            <ul className="space-y-3">
+              {suggested.map((item) => (
+                <li key={item.key}>
+                  <p className="font-medium">{item.title}</p>
+                  <p className="mt-0.5 text-muted-foreground">{item.action}</p>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
       )}
 
       {blocking.length === 0 && (
-        <p className="rounded-card border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-          <span className="font-semibold">Ya se puede publicar.</span> Lo de arriba mejora la ficha,
-          pero no es obligatorio.
-        </p>
+        <Alert variant="success">
+          <CircleCheck />
+          <AlertTitle>Ya se puede publicar.</AlertTitle>
+          <AlertDescription>
+            Lo de arriba mejora la ficha, pero no es obligatorio.
+          </AlertDescription>
+        </Alert>
       )}
     </div>
   );

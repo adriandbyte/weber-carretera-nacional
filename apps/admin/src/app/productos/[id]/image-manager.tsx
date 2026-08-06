@@ -1,7 +1,16 @@
 'use client';
 
-import { useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useRef, useTransition } from 'react';
+import { ImagePlus, Loader2, Star, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import type { FormState } from './actions';
 
 interface ImageRecord {
@@ -11,26 +20,17 @@ interface ImageRecord {
   isPrimary: boolean;
 }
 
-function UploadButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded-md border border-carbon-300 px-3 py-2 text-sm text-carbon-700 transition hover:bg-carbon-100 disabled:opacity-50"
-    >
-      {pending ? 'Subiendo…' : 'Subir imagen'}
-    </button>
-  );
-}
-
-/// Gestor de imagenes. Vive fuera del formulario principal porque subir y
-/// borrar archivos son acciones inmediatas, y anidar un <form> dentro de otro
-/// no es HTML valido.
+/// Gestor de imagenes.
 ///
-/// Es componente de cliente para poder mostrar el resultado de la subida: sin
-/// eso, un fallo (archivo muy grande, almacenamiento sin configurar) no
-/// dejaria ningun rastro en pantalla y el usuario creeria que funciono.
+/// Vive dentro del formulario principal, en la columna lateral, asi que no
+/// puede usar <form> propios: anidar un formulario dentro de otro no es HTML
+/// valido. Llama a los Server Actions directamente desde el cliente, que es lo
+/// que ya hacian esos formularios, solo que sin el envio de por medio.
+///
+/// De paso desaparece el paso de dos tiempos "elegir archivo y luego pulsar
+/// subir", y con el la caja nativa que decia "Choose File / No file chosen" en
+/// ingles en un panel que esta todo en español: ese texto lo pone el navegador
+/// y no se puede traducir.
 export function ImageManager({
   images,
   uploadAction,
@@ -42,89 +42,127 @@ export function ImageManager({
   deleteAction: (formData: FormData) => Promise<void>;
   setPrimaryAction: (formData: FormData) => Promise<void>;
 }) {
-  const [state, formAction] = useActionState(uploadAction, { ok: false });
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [pending, startTransition] = useTransition();
+
+  function upload(file: File) {
+    const data = new FormData();
+    data.set('file', file);
+    startTransition(async () => {
+      const result = await uploadAction({ ok: false }, data);
+      if (!result.message) return;
+      if (result.ok) toast.success(result.message);
+      else toast.error(result.message);
+    });
+  }
+
+  function run(action: (formData: FormData) => Promise<void>, imageId: string) {
+    const data = new FormData();
+    data.set('imageId', imageId);
+    startTransition(() => action(data));
+  }
 
   return (
-    <section className="rounded-card border border-carbon-200 bg-white p-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="font-display text-lg font-semibold text-carbon-900">
+    <Card size="sm">
+      <CardHeader>
+        <CardTitle className="gap-0.5">
           Imágenes
-          <span className="ml-0.5 text-ember-600">*</span>
-        </h2>
-        <p className="text-sm text-carbon-400">
+          <span className="text-primary" aria-hidden>
+            *
+          </span>
+        </CardTitle>
+        <CardDescription>
           {images.length === 0
-            ? 'Sin imágenes · hace falta al menos una para publicar'
+            ? 'Hace falta al menos una para publicar'
             : `${images.length} ${images.length === 1 ? 'imagen' : 'imágenes'}`}
-        </p>
-      </div>
+        </CardDescription>
+      </CardHeader>
 
-      {images.length > 0 && (
-        <ul className="mt-5 flex flex-wrap gap-4">
-          {images.map((image) => (
-            <li key={image.id} className="w-40">
-              <div
-                className={`relative aspect-square overflow-hidden rounded-card border-2 bg-steel-100 ${
-                  image.isPrimary ? 'border-carbon-900' : 'border-carbon-100'
-                }`}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={image.url} alt={image.alt ?? ''} className="h-full w-full object-contain" />
-                {image.isPrimary && (
-                  <span className="absolute left-1.5 top-1.5 rounded-full bg-carbon-900 px-2 py-0.5 text-xs font-medium text-white">
-                    Portada
-                  </span>
-                )}
-              </div>
-              <div className="mt-2 flex items-center justify-between gap-2 text-xs">
-                {image.isPrimary ? (
-                  <span className="text-carbon-300">Portada</span>
-                ) : (
-                  <form action={setPrimaryAction}>
-                    <input type="hidden" name="imageId" value={image.id} />
-                    <button type="submit" className="text-carbon-500 underline hover:text-carbon-900">
-                      Usar de portada
-                    </button>
-                  </form>
-                )}
-                <form action={deleteAction}>
-                  <input type="hidden" name="imageId" value={image.id} />
-                  <button type="submit" className="text-ember-600 underline hover:text-ember-700">
-                    Eliminar
-                  </button>
-                </form>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+      <CardContent className="space-y-3">
+        {images.length > 0 && (
+          <ul className="grid grid-cols-2 gap-2">
+            {images.map((image) => (
+              <li key={image.id}>
+                <div
+                  className={`relative aspect-square overflow-hidden rounded-lg bg-photo ring-2 ${
+                    image.isPrimary ? 'ring-primary' : 'ring-border'
+                  }`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={image.url}
+                    alt={image.alt ?? ''}
+                    className="size-full object-contain"
+                  />
+                  {image.isPrimary && (
+                    <span className="absolute top-1 left-1 inline-flex items-center gap-1 rounded-full bg-primary px-1.5 py-0.5 text-[0.65rem] leading-none font-medium text-primary-foreground">
+                      <Star className="size-2.5 fill-current" />
+                      Portada
+                    </span>
+                  )}
+                </div>
 
-      {state.message && (
-        <p
-          role="status"
-          className={`mt-5 rounded-md border px-3 py-2 text-sm ${
-            state.ok
-              ? 'border-green-200 bg-green-50 text-green-800'
-              : 'border-ember-300 bg-ember-100 text-ember-700'
-          }`}
-        >
-          {state.message}
-        </p>
-      )}
+                <div className="mt-1 flex items-center justify-center gap-0.5">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    disabled={pending || image.isPrimary}
+                    onClick={() => run(setPrimaryAction, image.id)}
+                    title={image.isPrimary ? 'Ya es la portada' : 'Usar de portada'}
+                    aria-label={image.isPrimary ? 'Ya es la portada' : 'Usar de portada'}
+                    className="text-muted-foreground hover:text-primary disabled:opacity-30"
+                  >
+                    <Star className={image.isPrimary ? 'fill-current' : undefined} />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    disabled={pending}
+                    onClick={() => run(deleteAction, image.id)}
+                    title="Eliminar imagen"
+                    aria-label="Eliminar imagen"
+                    className="text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 />
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
 
-      <form
-        action={formAction}
-        className="mt-5 flex flex-wrap items-center gap-3 border-t border-carbon-100 pt-5"
-      >
         <input
+          ref={fileRef}
           type="file"
-          name="file"
           accept="image/png,image/jpeg,image/webp"
-          required
-          className="text-sm text-carbon-600 file:mr-3 file:rounded-md file:border-0 file:bg-carbon-100 file:px-3 file:py-2 file:text-sm file:text-carbon-700 hover:file:bg-carbon-200"
+          className="sr-only"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            // Se limpia el input para que volver a elegir el mismo archivo
+            // dispare el cambio otra vez, cosa que hace falta al reintentar
+            // una subida que fallo.
+            event.target.value = '';
+            if (file) upload(file);
+          }}
         />
-        <UploadButton />
-        <p className="text-xs text-carbon-400">PNG, JPG o WebP. Se reduce y optimiza sola.</p>
-      </form>
-    </section>
+
+        <Button
+          type="button"
+          variant="outline"
+          disabled={pending}
+          onClick={() => fileRef.current?.click()}
+          className="w-full"
+        >
+          {pending ? <Loader2 className="animate-spin" /> : <ImagePlus data-icon="inline-start" />}
+          {pending ? 'Subiendo…' : 'Subir imagen'}
+        </Button>
+
+        <p className="text-xs text-muted-foreground">
+          PNG, JPG o WebP. Se reduce y optimiza sola.
+        </p>
+      </CardContent>
+    </Card>
   );
 }

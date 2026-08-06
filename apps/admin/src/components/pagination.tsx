@@ -1,7 +1,24 @@
-/// Paginacion por enlaces, sin JavaScript de cliente. Cada pagina tiene su
-/// propia URL, asi que el usuario puede compartirla o volver con el boton
-/// atras del navegador y cae donde estaba, que es justo lo que hace falta
-/// cuando alguien lleva dos horas limpiando productos.
+import Link from 'next/link';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Pagination as Root,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+} from '@/components/ui/pagination';
+
+/// Paginacion por enlaces. Cada pagina tiene su propia URL, asi que el usuario
+/// puede compartirla o volver con el boton atras del navegador y cae donde
+/// estaba, que es justo lo que hace falta cuando alguien lleva dos horas
+/// limpiando productos.
+///
+/// Envuelve al componente de shadcn para resolver aqui, en un solo sitio, la
+/// ventana de paginas y los extremos deshabilitados.
+///
+/// Anterior y Siguiente se arman con PaginationLink en vez de con
+/// PaginationPrevious y PaginationNext: esos dos fijan sus propios hijos (el
+/// icono y la palabra), asi que no dejan sitio para el <Link> de Next.
 export function Pagination({
   page,
   totalPages,
@@ -22,44 +39,56 @@ export function Pagination({
   }
   const ordered = Array.from(pages).sort((a, b) => a - b);
 
-  const linkClass = 'rounded-md border border-carbon-200 bg-white px-3 py-1.5 hover:bg-carbon-100';
-  const mutedClass = 'rounded-md border border-carbon-100 px-3 py-1.5 text-carbon-300';
+  // Deshabilitado y no oculto: si el boton desaparece en la primera pagina,
+  // los numeros se corren y el que se queria pulsar cambia de sitio.
+  const off = 'pointer-events-none opacity-40';
 
   return (
-    <nav className="mt-5 flex flex-wrap items-center gap-1.5 text-sm" aria-label="Paginación">
-      {page > 1 ? (
-        <a href={hrefFor(page - 1)} className={linkClass}>
-          Anterior
-        </a>
-      ) : (
-        <span className={mutedClass}>Anterior</span>
-      )}
-
-      {ordered.map((p, index) => (
-        <span key={p} className="flex items-center gap-1.5">
-          {index > 0 && ordered[index - 1]! < p - 1 && <span className="px-1 text-carbon-300">…</span>}
-          {p === page ? (
-            <span
-              aria-current="page"
-              className="rounded-md bg-carbon-900 px-3 py-1.5 font-medium text-white"
-            >
-              {p}
-            </span>
+    <Root className="mt-5 justify-start" aria-label="Paginación">
+      <PaginationContent>
+        <PaginationItem>
+          {page > 1 ? (
+            <PaginationLink asChild size="default" className="pl-1.5!">
+              <Link href={hrefFor(page - 1)} aria-label="Página anterior">
+                <ChevronLeft data-icon="inline-start" />
+                Anterior
+              </Link>
+            </PaginationLink>
           ) : (
-            <a href={hrefFor(p)} className={linkClass}>
-              {p}
-            </a>
+            <PaginationLink size="default" aria-disabled tabIndex={-1} className={`pl-1.5! ${off}`}>
+              <ChevronLeft data-icon="inline-start" />
+              Anterior
+            </PaginationLink>
           )}
-        </span>
-      ))}
+        </PaginationItem>
 
-      {page < totalPages ? (
-        <a href={hrefFor(page + 1)} className={linkClass}>
-          Siguiente
-        </a>
-      ) : (
-        <span className={mutedClass}>Siguiente</span>
-      )}
-    </nav>
+        {ordered.map((p, index) => (
+          <PaginationItem key={p} className="flex items-center gap-0.5">
+            {index > 0 && ordered[index - 1]! < p - 1 && <PaginationEllipsis />}
+            <PaginationLink asChild isActive={p === page} className="tabular-nums">
+              <Link href={hrefFor(p)} aria-label={`Página ${p}`}>
+                {p}
+              </Link>
+            </PaginationLink>
+          </PaginationItem>
+        ))}
+
+        <PaginationItem>
+          {page < totalPages ? (
+            <PaginationLink asChild size="default" className="pr-1.5!">
+              <Link href={hrefFor(page + 1)} aria-label="Página siguiente">
+                Siguiente
+                <ChevronRight data-icon="inline-end" />
+              </Link>
+            </PaginationLink>
+          ) : (
+            <PaginationLink size="default" aria-disabled tabIndex={-1} className={`pr-1.5! ${off}`}>
+              Siguiente
+              <ChevronRight data-icon="inline-end" />
+            </PaginationLink>
+          )}
+        </PaginationItem>
+      </PaginationContent>
+    </Root>
   );
 }

@@ -1,6 +1,22 @@
+import Link from 'next/link';
+import { ImageOff, Plus, Search } from 'lucide-react';
 import { prisma, type Prisma } from '@weber/db';
 import { formatMoney, pluralize, STATUS_LABEL } from '@weber/core';
 import { Pagination } from '@/components/pagination';
+import { PageHeader } from '@/components/page-header';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { NativeSelect } from '@/components/ui/native-select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 export const metadata = { title: 'Productos' };
 
@@ -77,35 +93,38 @@ export default async function ProductosPage({
 
   return (
     <div>
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h1 className="font-display text-2xl font-bold text-carbon-900">Productos</h1>
-        <div className="flex items-center gap-4">
-          <p className="text-sm text-carbon-400">
+      <PageHeader
+        title="Productos"
+        description={
+          <>
             {pluralize(total, 'producto')}
             {totalPages > 1 && ` · página ${page} de ${totalPages}`}
-          </p>
-          <a
-            href="/productos/nuevo"
-            className="rounded-md bg-carbon-900 px-3 py-2 text-sm font-medium text-white hover:bg-carbon-700"
-          >
-            Nuevo producto
-          </a>
-        </div>
-      </div>
+          </>
+        }
+        actions={
+          <Button asChild size="lg">
+            <Link href="/productos/nuevo">
+              <Plus data-icon="inline-start" />
+              Nuevo producto
+            </Link>
+          </Button>
+        }
+      />
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
+      {/* Los filtros son navegacion, no un control de formulario: cada uno
+          tiene su URL. Por eso son enlaces con el aspecto de boton y no un
+          grupo de alternancia, que ademas perderia el poder abrirlos en otra
+          pestaña. */}
+      <div className="flex flex-wrap items-center gap-1.5">
         {Object.entries(FILTERS).map(([key, filter]) => (
-          <a
+          <Button
             key={key}
-            href={`/productos?filtro=${key}&orden=${sortKey}`}
-            className={`rounded-full px-3 py-1 text-sm transition ${
-              key === filterKey
-                ? 'bg-carbon-900 text-white'
-                : 'bg-white text-carbon-600 hover:bg-carbon-100'
-            }`}
+            asChild
+            variant={key === filterKey ? 'default' : 'outline'}
+            aria-current={key === filterKey ? 'page' : undefined}
           >
-            {filter.label}
-          </a>
+            <Link href={`/productos?filtro=${key}&orden=${sortKey}`}>{filter.label}</Link>
+          </Button>
         ))}
       </div>
 
@@ -113,130 +132,140 @@ export default async function ProductosPage({
         <form action="/productos" className="flex items-center gap-2">
           <input type="hidden" name="filtro" value={filterKey} />
           <input type="hidden" name="orden" value={sortKey} />
-          <input
-            type="search"
-            name="q"
-            defaultValue={search}
-            placeholder="Buscar por nombre o SKU"
-            className="w-72 rounded-md border border-carbon-200 px-3 py-2 text-sm"
-          />
-          <button
-            type="submit"
-            className="rounded-md bg-carbon-900 px-3 py-2 text-sm text-white hover:bg-carbon-700"
-          >
+          <div className="relative">
+            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              name="q"
+              defaultValue={search}
+              placeholder="Buscar por nombre o SKU"
+              aria-label="Buscar por nombre o SKU"
+              className="w-72 bg-card pl-8"
+            />
+          </div>
+          <Button type="submit" variant="outline">
             Buscar
-          </button>
+          </Button>
           {search && (
-            <a href={`/productos?filtro=${filterKey}`} className="text-sm text-carbon-400 underline">
-              Limpiar
-            </a>
+            <Button asChild variant="ghost">
+              <Link href={`/productos?filtro=${filterKey}`}>Limpiar</Link>
+            </Button>
           )}
         </form>
 
-        <form action="/productos" className="flex items-center gap-2 text-sm text-carbon-400">
+        <form action="/productos" className="flex items-center gap-2 text-sm text-muted-foreground">
           <input type="hidden" name="filtro" value={filterKey} />
           {search && <input type="hidden" name="q" value={search} />}
-          <label htmlFor="orden">Ordenar por</label>
-          <select
-            id="orden"
-            name="orden"
-            defaultValue={sortKey}
-            className="rounded-md border border-carbon-200 bg-white px-2 py-1.5 text-carbon-700"
-          >
+          <label htmlFor="orden" className="whitespace-nowrap">
+            Ordenar por
+          </label>
+          <NativeSelect id="orden" name="orden" defaultValue={sortKey} className="w-52 bg-card">
             {Object.entries(SORTS).map(([key, sort]) => (
               <option key={key} value={key}>
                 {sort.label}
               </option>
             ))}
-          </select>
-          <button type="submit" className="text-carbon-500 underline">
+          </NativeSelect>
+          <Button type="submit" variant="outline">
             Aplicar
-          </button>
+          </Button>
         </form>
       </div>
 
-      <div className="mt-4 overflow-x-auto rounded-card border border-carbon-200 bg-white">
-        <table className="w-full min-w-[52rem] table-fixed text-sm">
+      <Card className="mt-4 gap-0 py-0">
+        <Table className="min-w-[52rem] table-fixed">
           <colgroup>
             <col />
-            <col className="w-24" />
-            <col className="w-24" />
             <col className="w-28" />
             <col className="w-28" />
-            <col className="w-28" />
+            <col className="w-32" />
+            <col className="w-32" />
+            <col className="w-32" />
           </colgroup>
-          <thead className="border-b border-carbon-200 text-left text-carbon-400">
-            <tr>
-              <th className="px-4 py-3 font-medium">Producto</th>
-              <th className="px-4 py-3 font-medium">SKU</th>
-              <th className="px-4 py-3 font-medium">Tipo</th>
-              <th className="px-4 py-3 font-medium">Serie</th>
-              <th className="px-4 py-3 text-right font-medium">Precio</th>
-              <th className="px-4 py-3 font-medium">Estado</th>
-            </tr>
-          </thead>
-          <tbody>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="px-4 text-muted-foreground">Producto</TableHead>
+              <TableHead className="px-4 text-muted-foreground">SKU</TableHead>
+              <TableHead className="px-4 text-muted-foreground">Tipo</TableHead>
+              <TableHead className="px-4 text-muted-foreground">Serie</TableHead>
+              <TableHead className="px-4 text-right text-muted-foreground">Precio</TableHead>
+              <TableHead className="px-4 text-muted-foreground">Estado</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {products.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-14 text-center text-carbon-400">
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={6} className="px-4 py-16 text-center text-muted-foreground">
                   Ningún producto coincide con este filtro.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
             {products.map((product) => (
-              <tr key={product.id} className="border-b border-carbon-100 last:border-0">
-                <td className="px-4 py-3">
+              <TableRow key={product.id}>
+                <TableCell className="px-4 py-3 whitespace-normal">
                   <div className="flex items-start gap-3">
-                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded bg-steel-100">
-                      {product.images[0] && (
+                    <div
+                      className={`flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md ring-1 ring-foreground/10 ${
+                        product.images[0] ? 'bg-photo' : 'bg-muted'
+                      }`}
+                    >
+                      {product.images[0] ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={product.images[0].url}
                           alt=""
-                          className="h-full w-full object-contain"
+                          className="size-full object-contain"
                         />
+                      ) : (
+                        <ImageOff className="size-4 text-muted-foreground/60" />
                       )}
                     </div>
-                    <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
-                      <a
+                    {/* La etiqueta va pegada al nombre y no alineada al borde
+                        de la columna: separada por medio ancho de tabla ya no
+                        se lee como algo que le pasa a ese producto. */}
+                    <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+                      <Link
                         href={`/productos/${product.id}`}
-                        className="line-clamp-2 min-w-0 font-medium text-carbon-900 hover:text-ember-600"
+                        className="line-clamp-2 font-medium transition-colors hover:text-primary"
                       >
                         {product.name}
-                      </a>
+                      </Link>
                       {product.needsReview && (
-                        <span
+                        <Badge
+                          variant="warning"
                           title={product.reviewNote ?? undefined}
-                          className="mt-0.5 shrink-0 cursor-help rounded-full bg-ember-100 px-2 py-0.5 text-xs font-medium text-ember-700"
+                          className="shrink-0 cursor-help"
                         >
                           Revisar
-                        </span>
+                        </Badge>
                       )}
                     </div>
                   </div>
-                </td>
-                <td className="px-4 py-3 text-carbon-400">{product.sku}</td>
-                <td className="px-4 py-3 text-carbon-500">{product.productType?.name ?? '-'}</td>
-                <td className="px-4 py-3 text-carbon-500">{product.series?.name ?? '-'}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
-                  {formatMoney(product.price) ?? <span className="text-carbon-300">-</span>}
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs ${
-                      product.status === 'ACTIVE'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-carbon-100 text-carbon-500'
-                    }`}
-                  >
+                </TableCell>
+                <TableCell className="px-4 font-mono text-xs text-muted-foreground">
+                  {product.sku}
+                </TableCell>
+                <TableCell className="truncate px-4 text-muted-foreground">
+                  {product.productType?.name ?? '-'}
+                </TableCell>
+                <TableCell className="truncate px-4 text-muted-foreground">
+                  {product.series?.name ?? '-'}
+                </TableCell>
+                <TableCell className="px-4 text-right tabular-nums">
+                  {formatMoney(product.price) ?? (
+                    <span className="text-muted-foreground/60">-</span>
+                  )}
+                </TableCell>
+                <TableCell className="px-4">
+                  <Badge variant={product.status === 'ACTIVE' ? 'success' : 'secondary'}>
                     {STATUS_LABEL[product.status] ?? product.status}
-                  </span>
-                </td>
-              </tr>
+                  </Badge>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </Card>
 
       <Pagination page={page} totalPages={totalPages} hrefFor={(p) => queryFor({ pagina: p })} />
     </div>
