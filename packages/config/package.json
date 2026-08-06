@@ -2,7 +2,11 @@
   "name": "@weber/config",
   "version": "0.0.0",
   "private": true,
-  "files": ["tsconfig", "tailwind", "eslint"],
+  "files": [
+    "tsconfig",
+    "tailwind",
+    "eslint"
+  ],
   "exports": {
     "./tsconfig/base.json": "./tsconfig/base.json",
     "./tsconfig/nextjs.json": "./tsconfig/nextjs.json",
@@ -11,6 +15,9 @@
     "./eslint": "./eslint/index.mjs"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.6",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "15.5.22",
     "typescript": "^5.7.2"
   }
 }
