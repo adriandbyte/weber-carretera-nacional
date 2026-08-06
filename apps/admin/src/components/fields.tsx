@@ -1,3 +1,5 @@
+'use client';
+
 /// Campos de formulario. Existen para que el error de validacion aparezca
 /// siempre pegado a su input y con el mismo aspecto en todas las pantallas:
 /// cuando cada formulario resuelve eso por su cuenta, tarde o temprano alguno
@@ -88,18 +90,32 @@ export interface Option {
   name: string;
 }
 
+/// Acepta las dos formas: sin control (defaultValue) para la mayoria, y
+/// controlado (value + onChange) cuando otra parte del formulario reacciona
+/// a lo que se elige aqui.
 export function SelectField({
   options,
   defaultValue,
+  value,
+  onChange,
   emptyLabel = 'Sin especificar',
   ...props
-}: BaseProps & { options: Option[]; defaultValue?: string | null; emptyLabel?: string }) {
+}: BaseProps & {
+  options: Option[];
+  defaultValue?: string | null;
+  value?: string;
+  onChange?: (value: string) => void;
+  emptyLabel?: string;
+}) {
+  const controlled = value !== undefined;
   return (
     <Wrapper {...props}>
       <select
         id={props.name}
         name={props.name}
-        defaultValue={defaultValue ?? ''}
+        {...(controlled
+          ? { value, onChange: (event) => onChange?.(event.target.value) }
+          : { defaultValue: defaultValue ?? '' })}
         className={inputClass(Boolean(props.errors?.length))}
       >
         <option value="">{emptyLabel}</option>

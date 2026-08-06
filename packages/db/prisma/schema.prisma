@@ -214,6 +214,12 @@ model Product {
 
   status ProductStatus @default(DRAFT)
 
+  /// Primera vez que el producto se publico. Marca el momento en que su URL
+  /// dejo de ser libre: a partir de aqui puede haber enlaces apuntando a ella
+  /// y buscadores que ya la indexaron, asi que cambiarla tiene consecuencias.
+  /// Nulo mientras nunca haya salido a la tienda.
+  publishedAt DateTime?
+
   // --- Comercial ---------------------------------------------------------
   /// Precio de venta. Nulo mientras no se capture la lista de precios.
   price          Decimal? @db.Decimal(10, 2)

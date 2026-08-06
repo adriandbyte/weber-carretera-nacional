@@ -1,12 +1,11 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { CheckboxGroup, SelectField, TextArea, TextField, type Option } from '@/components/fields';
 import type { FormState } from './actions';
 
 interface Catalogs {
-  brands: Option[];
   productTypes: Option[];
   fuelTypes: Option[];
   series: Option[];
@@ -17,16 +16,12 @@ interface Catalogs {
 }
 
 export interface ProductFormValues {
-  sku: string;
   name: string;
-  slug: string;
   shortDescription: string | null;
   description: string | null;
   status: string;
   price: string | null;
   compareAtPrice: string | null;
-  stock: number;
-  brandId: string | null;
   productTypeId: string | null;
   fuelTypeId: string | null;
   seriesId: string | null;
@@ -35,12 +30,8 @@ export interface ProductFormValues {
   sizeId: string | null;
   categoryIds: string[];
   compatibleSeriesIds: string[];
-  metaTitle: string | null;
-  metaDescription: string | null;
   needsReview: boolean;
   reviewNote: string | null;
-  rawCategory: string | null;
-  rawSubcategory: string | null;
 }
 
 const STATUS_OPTIONS = [
@@ -66,14 +57,21 @@ function SaveButton() {
 export function ProductForm({
   values,
   catalogs,
+  equipmentTypeIds,
   action,
 }: {
   values: ProductFormValues;
   catalogs: Catalogs;
+  equipmentTypeIds: string[];
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
 }) {
   const [state, formAction] = useActionState(action, { ok: false });
   const errors = state.errors ?? {};
+
+  // Se sigue el tipo elegido para esconder la compatibilidad en cuanto deja de
+  // aplicar, sin esperar a guardar.
+  const [productTypeId, setProductTypeId] = useState(values.productTypeId ?? '');
+  const isEquipment = equipmentTypeIds.includes(productTypeId);
 
   return (
     <form action={formAction} className="pb-24">
@@ -109,14 +107,6 @@ export function ProductForm({
                 errors={errors.name}
                 hint="Ejemplo: Asador de Gas Weber Genesis E-315, 3 Quemadores, Negro"
               />
-              <TextField
-                name="slug"
-                label="URL"
-                required
-                defaultValue={values.slug}
-                errors={errors.slug}
-                hint="Aparece en la dirección del producto. Si ya está publicado, cambiarla rompe los enlaces existentes."
-              />
               <TextArea
                 name="shortDescription"
                 label="Descripción corta"
@@ -148,7 +138,8 @@ export function ProductForm({
                 name="productTypeId"
                 label="Tipo de producto"
                 options={catalogs.productTypes}
-                defaultValue={values.productTypeId}
+                value={productTypeId}
+                onChange={setProductTypeId}
                 errors={errors.productTypeId}
               />
               <SelectField
@@ -191,13 +182,6 @@ export function ProductForm({
                 errors={errors.sizeId}
                 emptyLabel="No aplica"
               />
-              <SelectField
-                name="brandId"
-                label="Marca"
-                options={catalogs.brands}
-                defaultValue={values.brandId}
-                errors={errors.brandId}
-              />
             </div>
 
             <div className="mt-6 space-y-5 border-t border-carbon-100 pt-6">
@@ -208,47 +192,22 @@ export function ProductForm({
                 selected={values.categoryIds}
                 errors={errors.categoryIds}
                 columns={3}
-                hint="La primera que marques manda para la dirección del producto."
+                hint="Marca todas donde deba aparecer. La primera es la principal."
               />
-              <CheckboxGroup
-                name="compatibleSeriesIds"
-                label="Compatible con"
-                options={catalogs.series}
-                selected={values.compatibleSeriesIds}
-                errors={errors.compatibleSeriesIds}
-                columns={3}
-                hint="Solo para accesorios: con qué asadores sirve."
-              />
+              {!isEquipment && (
+                <CheckboxGroup
+                  name="compatibleSeriesIds"
+                  label="Compatible con"
+                  options={catalogs.series}
+                  selected={values.compatibleSeriesIds}
+                  errors={errors.compatibleSeriesIds}
+                  columns={3}
+                  hint="Con qué asadores sirve este accesorio."
+                />
+              )}
             </div>
           </section>
 
-          <section className="rounded-card border border-carbon-200 bg-white p-6">
-            <h2 className="font-display text-lg font-semibold text-carbon-900">
-              Buscadores (SEO)
-            </h2>
-            <p className="mt-1 text-sm text-carbon-400">
-              Lo que aparece como título y resumen en los resultados de Google. Si lo dejas vacío se
-              usa el nombre del producto.
-            </p>
-
-            <div className="mt-5 space-y-5">
-              <TextField
-                name="metaTitle"
-                label="Título para buscadores"
-                defaultValue={values.metaTitle}
-                errors={errors.metaTitle}
-                hint="Máximo 70 caracteres. Incluye lo que la gente busca: tipo, marca, modelo."
-              />
-              <TextArea
-                name="metaDescription"
-                label="Resumen para buscadores"
-                rows={3}
-                defaultValue={values.metaDescription}
-                errors={errors.metaDescription}
-                hint="Máximo 160 caracteres."
-              />
-            </div>
-          </section>
         </div>
 
         {/* --- Columna lateral -------------------------------------------- */}
@@ -326,38 +285,9 @@ export function ProductForm({
                 placeholder="14999.00"
                 hint="El que se muestra tachado en una oferta."
               />
-              <TextField
-                name="stock"
-                label="Existencias"
-                type="number"
-                defaultValue={String(values.stock)}
-                errors={errors.stock}
-              />
             </div>
           </section>
 
-          <section className="rounded-card border border-carbon-200 bg-white p-5">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-carbon-400">
-              Datos del Excel
-            </h2>
-            <p className="mt-1 text-xs text-carbon-400">
-              Como venía el producto en el archivo original. Solo de consulta.
-            </p>
-            <dl className="mt-3 space-y-2 text-sm">
-              <div className="flex justify-between gap-3">
-                <dt className="text-carbon-400">SKU</dt>
-                <dd className="font-medium text-carbon-700">{values.sku}</dd>
-              </div>
-              <div className="flex justify-between gap-3">
-                <dt className="text-carbon-400">Categoría</dt>
-                <dd className="text-right text-carbon-700">{values.rawCategory ?? '-'}</dd>
-              </div>
-              <div className="flex justify-between gap-3">
-                <dt className="text-carbon-400">Subcategoría</dt>
-                <dd className="text-right text-carbon-700">{values.rawSubcategory ?? '-'}</dd>
-              </div>
-            </dl>
-          </section>
         </div>
       </div>
 

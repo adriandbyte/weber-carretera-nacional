@@ -4,16 +4,13 @@ import { productSchema } from '../src/schemas';
 
 const base = {
   name: 'Producto de prueba',
-  slug: 'producto-de-prueba',
   shortDescription: '',
   description: '',
   status: 'DRAFT' as const,
   compareAtPrice: '',
-  stock: '0',
-  brandId: '', productTypeId: '', fuelTypeId: '', seriesId: '',
+  productTypeId: '', fuelTypeId: '', seriesId: '',
   formatId: '', colorId: '', sizeId: '',
-  categoryIds: [], compatibleSeriesIds: [],
-  metaTitle: '', metaDescription: '', needsReview: false,
+  categoryIds: [], compatibleSeriesIds: [], needsReview: false,
 };
 
 const casos: [string, string | null | 'ERROR'][] = [
