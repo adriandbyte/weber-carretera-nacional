@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { prisma } from '@weber/db';
 import './globals.css';
 
@@ -31,9 +32,9 @@ async function Header() {
         </div>
       )}
       <nav className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-4">
-        <a href="/" className="font-display text-xl font-bold text-carbon-900">
+        <Link href="/" className="font-display text-xl font-bold text-carbon-900">
           {settings?.siteName ?? 'Weber Store'}
-        </a>
+        </Link>
         <ul className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
           {menu.map((item) => (
             <li key={item.id}>
