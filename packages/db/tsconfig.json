@@ -1,0 +1,5 @@
+{
+  "extends": "@weber/config/tsconfig/library.json",
+  "include": ["src", "scripts"],
+  "exclude": ["node_modules"]
+}

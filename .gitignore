@@ -1,0 +1,15 @@
+node_modules
+.next
+.turbo
+dist
+out
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.DS_Store
+coverage
+# Archivos fuente del cliente. Se quedan fuera del repositorio: son binarios
+# de 20+ MB que se reemplazan cada vez que cambia el inventario, y cada version
+# quedaria en el historial para siempre. Ver README para donde colocarlos.
+/data/

@@ -1,0 +1,29 @@
+{
+  "name": "weber-store",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.28.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "db:generate": "pnpm --filter @weber/db generate",
+    "db:push": "pnpm --filter @weber/db push",
+    "db:migrate": "pnpm --filter @weber/db migrate",
+    "db:studio": "pnpm --filter @weber/db studio",
+    "db:seed": "pnpm --filter @weber/db seed",
+    "import:inventario": "pnpm --filter @weber/db import:inventario",
+    "import:precios": "pnpm --filter @weber/db import:precios"
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  }
+}

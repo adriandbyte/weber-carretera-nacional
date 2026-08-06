@@ -1,0 +1,576 @@
+// ---------------------------------------------------------------------------
+// Weber Store - esquema de base de datos
+//
+// Organizado en cuatro bloques, en este orden:
+//   1. Catalogos    tablas de valores reutilizables que alimentan los dropdowns
+//   2. Producto     el catalogo comercial
+//   3. Contenido    secciones editables del sitio (Grill Academy, B2B, etc.)
+//   4. Operacion    prospectos y configuracion del sitio
+//
+// Carrito, ordenes y usuarios llegan despues. Nada de lo que hay aqui los
+// bloquea: Product ya tiene precio y stock, y los prospectos ya viven aparte.
+// ---------------------------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ===========================================================================
+// 1. CATALOGOS
+//
+// Todos siguen la misma forma a proposito: slug estable para las URLs, name
+// para mostrar, position para el orden en el dropdown y active para ocultar
+// una opcion sin borrarla. El admin los edita como tablas simples.
+// ===========================================================================
+
+/// Marca. Hoy solo Weber, pero el catalogo permite crecer sin migracion.
+model Brand {
+  id        String    @id @default(cuid())
+  slug      String    @unique
+  name      String
+  logoUrl   String?
+  position  Int       @default(0)
+  active    Boolean   @default(true)
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("marcas")
+}
+
+/// Que es el producto: Asador, Ahumador, Plancha, Accesorio, Combustible...
+model ProductType {
+  id        String    @id @default(cuid())
+  slug      String    @unique
+  name      String
+  position  Int       @default(0)
+  active    Boolean   @default(true)
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("tipos_producto")
+}
+
+/// Con que funciona: Carbon, Gas, Electrico, Pellet.
+/// Los accesorios no llevan combustible, por eso la relacion es opcional.
+model FuelType {
+  id        String    @id @default(cuid())
+  slug      String    @unique
+  name      String
+  icon      String?
+  position  Int       @default(0)
+  active    Boolean   @default(true)
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("combustibles")
+}
+
+/// Linea de producto: Spirit, Genesis, Summit, Q, Traveler, Master-Touch...
+/// Es la dimension que mas usan los clientes para buscar accesorios.
+model Series {
+  id           String                @id @default(cuid())
+  slug         String                @unique
+  name         String
+  description  String?
+  imageUrl     String?
+  position     Int                   @default(0)
+  active       Boolean               @default(true)
+  products     Product[]
+  /// Accesorios que declaran ser compatibles con esta serie.
+  compatibleTo ProductCompatibility[]
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  @@map("series")
+}
+
+/// Como se instala o transporta: Portatil, Empotrable, De carro, De mesa.
+model Format {
+  id        String    @id @default(cuid())
+  slug      String    @unique
+  name      String
+  position  Int       @default(0)
+  active    Boolean   @default(true)
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("formatos")
+}
+
+/// Color del producto. hex sirve para pintar el selector en la ficha.
+model Color {
+  id        String    @id @default(cuid())
+  slug      String    @unique
+  name      String
+  hex       String?
+  position  Int       @default(0)
+  active    Boolean   @default(true)
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("colores")
+}
+
+/// Medida del asador: 14", 18", 22", 26", 37.5".
+/// inches se guarda aparte para poder ordenar y filtrar por rango.
+model SizeOption {
+  id        String    @id @default(cuid())
+  slug      String    @unique
+  name      String
+  inches    Decimal?  @db.Decimal(5, 2)
+  position  Int       @default(0)
+  active    Boolean   @default(true)
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("tamanos")
+}
+
+/// Categoria de navegacion, jerarquica. Es lo que ve el cliente en el menu:
+/// Gas, Carbon, Electricos, Planchas, Portatiles, Empotrables, Accesorios.
+model Category {
+  id          String            @id @default(cuid())
+  slug        String            @unique
+  name        String
+  description String?
+  imageUrl    String?
+  parentId    String?
+  parent      Category?         @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Category[]        @relation("CategoryTree")
+  products    ProductCategory[]
+  menuItems   MenuItem[]
+  metaTitle       String?
+  metaDescription String?
+  position    Int               @default(0)
+  active      Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([parentId])
+  @@map("categorias")
+}
+
+/// Agrupacion curada a mano, no derivada de los atributos del producto:
+/// "Mas Vendidos", "Ofertas de Temporada", "Novedades".
+/// startsAt/endsAt dejan que una promocion aparezca y desaparezca sola,
+/// que es justo lo que pide el Excel para las ofertas de Weber.
+model Collection {
+  id          String              @id @default(cuid())
+  slug        String              @unique
+  name        String
+  description String?
+  imageUrl    String?
+  kind        CollectionKind      @default(CURATED)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  products    ProductCollection[]
+  metaTitle       String?
+  metaDescription String?
+  position    Int                 @default(0)
+  active      Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@map("colecciones")
+}
+
+enum CollectionKind {
+  CURATED /// seleccion manual, ej. Mas Vendidos
+  PROMO /// campaña con vigencia, ej. Ofertas de Temporada
+}
+
+// ===========================================================================
+// 2. PRODUCTO
+// ===========================================================================
+
+enum ProductStatus {
+  DRAFT /// importado pero sin revisar: no se muestra en la tienda
+  ACTIVE /// publicado
+  ARCHIVED /// oculto por decision propia
+  DISCONTINUED /// Weber ya no lo fabrica
+}
+
+model Product {
+  id   String @id @default(cuid())
+  /// SKU de Weber. Es la llave con la que se cruzan las listas de precios.
+  sku  String @unique
+  slug String @unique
+  name String
+
+  shortDescription String?
+  description      String?
+
+  status ProductStatus @default(DRAFT)
+
+  // --- Comercial ---------------------------------------------------------
+  /// Precio de venta. Nulo mientras no se capture la lista de precios.
+  price          Decimal? @db.Decimal(10, 2)
+  /// Precio de lista, el que se muestra tachado en una oferta.
+  compareAtPrice Decimal? @db.Decimal(10, 2)
+  /// Costo interno. Nunca se expone en la tienda publica.
+  cost           Decimal? @db.Decimal(10, 2)
+  currency       String   @default("MXN")
+
+  // --- Inventario --------------------------------------------------------
+  stock           Int     @default(0)
+  trackStock      Boolean @default(true)
+  allowBackorder  Boolean @default(false)
+
+  // --- Atributos (todos dropdowns alimentados por los catalogos) ---------
+  brandId       String?
+  brand         Brand?       @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  productTypeId String?
+  productType   ProductType? @relation(fields: [productTypeId], references: [id], onDelete: SetNull)
+  fuelTypeId    String?
+  fuelType      FuelType?    @relation(fields: [fuelTypeId], references: [id], onDelete: SetNull)
+  seriesId      String?
+  series        Series?      @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  formatId      String?
+  format        Format?      @relation(fields: [formatId], references: [id], onDelete: SetNull)
+  colorId       String?
+  color         Color?       @relation(fields: [colorId], references: [id], onDelete: SetNull)
+  sizeId        String?
+  size          SizeOption?  @relation(fields: [sizeId], references: [id], onDelete: SetNull)
+
+  categories  ProductCategory[]
+  collections ProductCollection[]
+  images      ProductImage[]
+  specs       ProductSpec[]
+  /// Para accesorios: con que series es compatible.
+  compatibility ProductCompatibility[]
+
+  // --- SEO ---------------------------------------------------------------
+  metaTitle       String?
+  metaDescription String?
+
+  // --- Trazabilidad de la importacion ------------------------------------
+  /// Texto original de las columnas del Excel, para poder auditar la
+  /// normalizacion sin volver a abrir el archivo.
+  rawCategory    String?
+  rawSubcategory String?
+  needsReview    Boolean @default(false)
+  reviewNote     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([seriesId])
+  @@index([fuelTypeId])
+  @@index([productTypeId])
+  @@map("productos")
+}
+
+/// Un producto vive en varias categorias. isPrimary define cual manda para
+/// la URL canonica y las migas de pan, lo que evita contenido duplicado.
+model ProductCategory {
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  isPrimary  Boolean  @default(false)
+  position   Int      @default(0)
+
+  @@id([productId, categoryId])
+  @@index([categoryId])
+  @@map("producto_categoria")
+}
+
+model ProductCollection {
+  productId    String
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  position     Int        @default(0)
+
+  @@id([productId, collectionId])
+  @@index([collectionId])
+  @@map("producto_coleccion")
+}
+
+/// "Este accesorio sirve para Spirit". Lo que hace posible el bloque
+/// "compatible con tu asador" en la ficha de producto.
+model ProductCompatibility {
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  seriesId  String
+  series    Series  @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  note      String?
+
+  @@id([productId, seriesId])
+  @@index([seriesId])
+  @@map("producto_compatibilidad")
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String?
+  width     Int?
+  height    Int?
+  position  Int     @default(0)
+  isPrimary Boolean @default(false)
+  /// Ruta en Vercel Blob, necesaria para poder borrar el archivo real.
+  blobPath  String?
+
+  @@index([productId])
+  @@map("producto_imagenes")
+}
+
+/// Ficha tecnica: "Superficie de coccion" / "1,240 cm2".
+/// Clave-valor libre para no migrar el esquema cada vez que Weber
+/// agrega una especificacion nueva.
+model ProductSpec {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  label     String
+  value     String
+  group     String?
+  position  Int     @default(0)
+
+  @@index([productId])
+  @@map("producto_especificaciones")
+}
+
+// ===========================================================================
+// 3. CONTENIDO
+// ===========================================================================
+
+/// El menu principal se administra, no se programa. Asi puedes esconder
+/// "Ofertas de Temporada" cuando no hay promociones vigentes, tal como
+/// lo pide el Excel, sin tocar codigo ni desplegar.
+model MenuItem {
+  id         String     @id @default(cuid())
+  label      String
+  /// Destino directo. Se ignora si hay categoryId.
+  url        String?
+  categoryId String?
+  category   Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  parentId   String?
+  parent     MenuItem?  @relation("MenuTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children   MenuItem[] @relation("MenuTree")
+  location   MenuLocation @default(HEADER)
+  highlight  Boolean    @default(false)
+  position   Int        @default(0)
+  active     Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([parentId])
+  @@map("menu")
+}
+
+enum MenuLocation {
+  HEADER
+  FOOTER
+}
+
+/// Pagina de contenido editable: Ubicacion, Contacto, B2B - Mayoreo,
+/// Grill Academy, avisos legales. El cuerpo se arma con bloques.
+model Page {
+  id          String         @id @default(cuid())
+  slug        String         @unique
+  title       String
+  subtitle    String?
+  heroImageUrl String?
+  blocks      ContentBlock[]
+  metaTitle       String?
+  metaDescription String?
+  published   Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@map("paginas")
+}
+
+/// Bloque de una pagina. data guarda los campos propios de cada tipo,
+/// validados con Zod en @weber/core antes de escribir.
+model ContentBlock {
+  id       String    @id @default(cuid())
+  pageId   String
+  page     Page      @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  type     BlockType
+  data     Json
+  position Int       @default(0)
+  active   Boolean   @default(true)
+
+  @@index([pageId])
+  @@map("bloques_contenido")
+}
+
+enum BlockType {
+  RICH_TEXT
+  IMAGE
+  GALLERY
+  VIDEO
+  MAP
+  FILE_DOWNLOAD /// el PDF descargable de Grill Academy
+  FEATURE_LIST /// ventajas: espacio climatizado, pantallas 65", estacionamiento
+  FAQ
+  CTA
+  CONTACT_FORM
+  PRODUCT_GRID
+}
+
+/// Curso de Grill Academy. Se lista en la seccion y alimenta las reservas.
+model Course {
+  id          String       @id @default(cuid())
+  slug        String       @unique
+  title       String
+  description String?
+  imageUrl    String?
+  startsAt    DateTime?
+  durationMin Int?
+  capacity    Int?
+  price       Decimal?     @db.Decimal(10, 2)
+  kind        CourseKind   @default(PUBLIC)
+  published   Boolean      @default(false)
+  position    Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("cursos")
+}
+
+enum CourseKind {
+  PUBLIC /// abierto al publico general
+  PRIVATE /// evento privado, se cotiza
+  CORPORATE /// evento corporativo, se cotiza
+}
+
+/// Galeria de fotos y videos, reutilizable entre secciones.
+model MediaAsset {
+  id        String    @id @default(cuid())
+  url       String
+  kind      MediaKind @default(IMAGE)
+  title     String?
+  alt       String?
+  /// Etiqueta libre para filtrar: "grill-academy", "ubicacion", "eventos".
+  tag       String?
+  width     Int?
+  height    Int?
+  blobPath  String?
+  position  Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  @@index([tag])
+  @@map("media")
+}
+
+enum MediaKind {
+  IMAGE
+  VIDEO
+  PDF
+}
+
+/// Banner de promocion: la imagen con el porcentaje de descuento que pide
+/// el Excel para Ofertas de Temporada. Con vigencia para que caduque solo.
+model Banner {
+  id         String       @id @default(cuid())
+  title      String
+  subtitle   String?
+  imageUrl   String
+  mobileImageUrl String?
+  linkUrl    String?
+  location   BannerSlot   @default(HOME_HERO)
+  startsAt   DateTime?
+  endsAt     DateTime?
+  position   Int          @default(0)
+  active     Boolean      @default(true)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@map("banners")
+}
+
+enum BannerSlot {
+  HOME_HERO
+  HOME_STRIP
+  CATEGORY_TOP
+  PROMO_BAR /// la barra delgada de avisos arriba del header
+}
+
+// ===========================================================================
+// 4. OPERACION
+// ===========================================================================
+
+/// Prospecto entrante. Un solo modelo para los tres formularios del Excel
+/// (B2B, cotizacion de Grill Academy, contacto) diferenciados por kind.
+model Lead {
+  id        String     @id @default(cuid())
+  kind      LeadKind
+  name      String
+  email     String?
+  phone     String?
+  company   String?
+  message   String?
+  /// Campos extra propios del formulario, ej. numero de asistentes.
+  extra     Json?
+  status    LeadStatus @default(NEW)
+  /// De donde llego: pagina, campaña UTM.
+  source    String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([kind, status])
+  @@map("prospectos")
+}
+
+enum LeadKind {
+  CONTACT
+  WHOLESALE /// B2B - Mayoreo
+  COURSE /// cotizacion o reserva de Grill Academy
+  PRODUCT /// pregunta sobre un producto
+}
+
+enum LeadStatus {
+  NEW
+  IN_PROGRESS
+  WON
+  LOST
+}
+
+/// Configuracion global del sitio, un solo registro (id = "default").
+/// Evita tener telefonos y horarios escritos a fuerza en el codigo.
+model SiteSetting {
+  id             String   @id @default("default")
+  siteName       String   @default("Weber Store")
+  whatsapp       String?
+  phone          String?
+  email          String?
+  addressLine    String?
+  city           String?
+  state          String?
+  postalCode     String?
+  googleMapsUrl  String?
+  googleMapsEmbed String?
+  /// Horarios de atencion: [{ dia, abre, cierra }].
+  openingHours   Json?
+  facebookUrl    String?
+  instagramUrl   String?
+  youtubeUrl     String?
+  tiktokUrl      String?
+  /// Aviso de la barra superior, ej. "Envio gratis en Monterrey".
+  announcement   String?
+  /// Costo de entrega en area metropolitana de Monterrey.
+  localDeliveryFee Decimal? @db.Decimal(10, 2)
+  pickupEnabled  Boolean  @default(true)
+  updatedAt      DateTime @updatedAt
+
+  @@map("configuracion")
+}
