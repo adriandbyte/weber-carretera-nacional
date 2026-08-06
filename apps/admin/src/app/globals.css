@@ -1,0 +1,27 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-carbon-50: #f6f6f5;
+  --color-carbon-100: #e7e7e5;
+  --color-carbon-200: #c9c9c5;
+  --color-carbon-300: #a3a39d;
+  --color-carbon-400: #6f6f69;
+  --color-carbon-500: #4a4a45;
+  --color-carbon-600: #33332f;
+  --color-carbon-700: #242421;
+  --color-carbon-800: #171715;
+  --color-carbon-900: #0d0d0c;
+
+  --color-ember-100: #ffe0d4;
+  --color-ember-300: #ff8b62;
+  --color-ember-500: #d9400f;
+  --color-ember-600: #b22f09;
+  --color-ember-700: #8a2407;
+
+  --color-steel-100: #f0f2f4;
+  --color-steel-300: #c4ccd2;
+  --color-steel-500: #8892a0;
+  --color-steel-700: #4c5666;
+
+  --radius-card: 0.75rem;
+}

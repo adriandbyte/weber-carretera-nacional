@@ -1,0 +1,121 @@
+# Weber Store
+
+Monorepo de la tienda en línea y su panel de administración.
+
+## Estructura
+
+```
+apps/
+  web/          Tienda pública (Next.js 15, App Router, ISR)
+  admin/        Panel de administración (Next.js 15)
+packages/
+  db/           Prisma: esquema, cliente, importadores y seed
+  core/         Lógica compartida entre las dos apps
+  config/       tsconfig, Tailwind y ESLint compartidos
+data/            (fuera del repositorio, ver abajo)
+  fuentes/      Los Excel originales del cliente
+  imagenes/     Imágenes extraídas del Excel (solo modo local)
+```
+
+El equivalente a MVC en esta arquitectura:
+
+| Capa | Dónde vive |
+| --- | --- |
+| Modelo | `packages/db` (Prisma) |
+| Controlador | `packages/core` (servicios y validación) |
+| Vista | `apps/*/src/app` (componentes de servidor) |
+
+Las dos apps comparten la misma base de datos y la misma lógica. Nunca escribas
+consultas de Prisma duplicadas en cada app: si algo lo usan las dos, va en
+`packages/core`.
+
+## Arranque
+
+Requiere Node 22+, pnpm 10+ y un PostgreSQL.
+
+```bash
+pnpm install
+
+# Los archivos fuente no viven en el repositorio: son binarios de 20+ MB que se
+# reemplazan cada vez que cambia el inventario. Colócalos aquí antes de importar:
+#   data/fuentes/Base de Datos Inventario.xlsx
+mkdir -p data/fuentes
+
+# Postgres local para desarrollo
+docker run -d --name weber-pg \
+  -e POSTGRES_PASSWORD=weber -e POSTGRES_USER=weber -e POSTGRES_DB=weber \
+  -p 55432:5432 postgres:16-alpine
+
+cp .env.example .env       # ajusta DATABASE_URL si usas otro Postgres
+pnpm db:migrate            # crea las tablas
+pnpm import:inventario     # carga los 331 productos y sus imágenes
+pnpm db:seed               # crea menú, páginas y configuración inicial
+pnpm dev                   # web en :3000, admin en :3001
+```
+
+Hay un solo `.env` en la raíz; cada app y `packages/db` lo alcanzan por symlink,
+así que no hay credenciales duplicadas.
+
+## Importadores
+
+### Inventario
+
+```bash
+pnpm import:inventario                          # archivo por defecto
+pnpm import:inventario -- ruta/a/otro.xlsx
+```
+
+Lee `data/fuentes/Base de Datos Inventario.xlsx`, separa las columnas de
+categoría en dimensiones limpias (tipo, combustible, serie, formato, color,
+tamaño), crea los catálogos y extrae las imágenes incrustadas asociándolas a su
+SKU por el anclaje de fila.
+
+Es idempotente. Al reimportar:
+
+- refresca los atributos derivados del Excel
+- **no** pisa nombre, precio, stock, descripción ni estado
+- no vuelve a subir una imagen que ya existe (la ruta lleva el hash del archivo)
+- no borra productos ausentes del Excel, solo los reporta
+
+Todo entra como borrador. Nada aparece en la tienda hasta publicarlo.
+
+Para revisar la normalización sin tocar la base:
+
+```bash
+pnpm --filter @weber/db exec tsx scripts/analyze-inventario.ts
+```
+
+### Lista de precios
+
+```bash
+pnpm import:precios -- ruta/a/lista-precios.xlsx
+pnpm import:precios -- ruta/a/lista-precios.xlsx --publicar
+```
+
+Cruza por SKU. Detecta solo la fila de encabezados y los nombres de columna
+más comunes (`Clave`/`SKU`/`Código`, `Precio`, `Precio Lista`, `Costo`,
+`Existencia`), así que acepta el archivo tal como venga. Sin `--publicar` solo
+carga precios; con la bandera además publica lo que estaba en borrador y quedó
+con precio mayor a cero.
+
+## Imágenes
+
+Con `BLOB_READ_WRITE_TOKEN` en el entorno, el importador sube a Vercel Blob.
+Sin el token, escribe en `data/imagenes/` y las apps las sirven por un symlink
+en `public/imagenes`, para poder trabajar sin credenciales.
+
+## Estado actual
+
+- 331 productos importados, todos en borrador
+- 322 imágenes extraídas, 313 SKU con imagen (18 sin ninguna)
+- 105 productos marcados para revisión (casi todos por nombre en mayúsculas
+  que hay que redactar para la tienda)
+- Sin precios: llegan con la lista de precios
+
+## Pendiente
+
+- CRUD completo en el admin (hoy solo hay lectura)
+- Fichas de producto y páginas de categoría en la tienda
+- Formularios de contacto y B2B conectados a `Lead`
+- Login (Auth.js) antes de exponer el admin en una URL pública
+- Carrito y órdenes
