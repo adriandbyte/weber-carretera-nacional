@@ -5,6 +5,13 @@
 /// cuando cada formulario resuelve eso por su cuenta, tarde o temprano alguno
 /// se traga el error y el usuario cree que guardo.
 
+import { useId } from 'react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
+import { Textarea } from '@/components/ui/textarea';
+
 interface BaseProps {
   name: string;
   label: string;
@@ -19,18 +26,52 @@ function Wrapper({
   hint,
   errors,
   required,
+  group = false,
   children,
-}: BaseProps & { children: React.ReactNode }) {
+}: BaseProps & {
+  /// Cierto cuando debajo hay varios controles y no uno solo. En ese caso el
+  /// titulo no puede ser un <label for>: apuntaria a un id que no existe (el
+  /// nombre del grupo no es el de ningun elemento) y el navegador lo reporta
+  /// como etiqueta rota. Pasa a ser el nombre accesible del conjunto.
+  group?: boolean;
+  children: React.ReactNode;
+}) {
+  const titleId = `${name}-label`;
+  const title = (
+    <>
+      {label}
+      {required && (
+        <span className="text-primary" aria-hidden>
+          *
+        </span>
+      )}
+    </>
+  );
+
   return (
-    <div>
-      <label htmlFor={name} className="block text-sm font-medium text-carbon-700">
-        {label}
-        {required && <span className="ml-0.5 text-ember-600">*</span>}
-      </label>
-      {hint && <p className="mt-0.5 text-xs text-carbon-400">{hint}</p>}
-      <div className="mt-1.5">{children}</div>
+    <div className="space-y-1.5">
+      {group ? (
+        <p id={titleId} className="flex items-center gap-0.5 text-sm leading-none font-medium">
+          {title}
+        </p>
+      ) : (
+        <Label htmlFor={name} className="gap-0.5">
+          {title}
+        </Label>
+      )}
+
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+
+      {group ? (
+        <div role="group" aria-labelledby={titleId}>
+          {children}
+        </div>
+      ) : (
+        children
+      )}
+
       {errors?.map((error) => (
-        <p key={error} className="mt-1 text-xs font-medium text-ember-600">
+        <p key={error} className="text-xs font-medium text-destructive">
           {error}
         </p>
       ))}
@@ -38,12 +79,10 @@ function Wrapper({
   );
 }
 
-const inputClass = (hasError: boolean) =>
-  `w-full rounded-md border px-3 py-2 text-sm text-carbon-900 outline-none transition focus:ring-2 ${
-    hasError
-      ? 'border-ember-500 focus:ring-ember-100'
-      : 'border-carbon-200 focus:border-carbon-400 focus:ring-carbon-100'
-  }`;
+/// aria-invalid es lo que pinta el borde rojo en los primitivos de shadcn, y
+/// de paso es lo que anuncia el error a un lector de pantalla. Un solo dato
+/// para las dos cosas, asi que no pueden desincronizarse.
+const invalid = (errors?: string[]) => (errors?.length ? true : undefined);
 
 export function TextField({
   defaultValue,
@@ -53,13 +92,17 @@ export function TextField({
 }: BaseProps & { defaultValue?: string | null; placeholder?: string; type?: string }) {
   return (
     <Wrapper {...props}>
-      <input
+      <Input
         id={props.name}
         name={props.name}
         type={type}
         defaultValue={defaultValue ?? ''}
         placeholder={placeholder}
-        className={inputClass(Boolean(props.errors?.length))}
+        aria-invalid={invalid(props.errors)}
+        // Nada de aqui es un dato de la persona que captura: son campos del
+        // producto. Sin esto el navegador ofrece su propio historial encima
+        // del campo, que aqui solo estorba.
+        autoComplete="off"
       />
     </Wrapper>
   );
@@ -73,13 +116,19 @@ export function TextArea({
 }: BaseProps & { defaultValue?: string | null; rows?: number; placeholder?: string }) {
   return (
     <Wrapper {...props}>
-      <textarea
+      <Textarea
         id={props.name}
         name={props.name}
         rows={rows}
         defaultValue={defaultValue ?? ''}
         placeholder={placeholder}
-        className={inputClass(Boolean(props.errors?.length))}
+        aria-invalid={invalid(props.errors)}
+        autoComplete="off"
+        // El Textarea de shadcn viene con field-sizing-content, que ajusta la
+        // altura al contenido e ignora `rows`. En un campo vacio eso deja una
+        // caja de dos lineas donde se espera media pagina de texto, y el
+        // tamaño del hueco es justo lo que dice cuanto hay que escribir.
+        className="field-sizing-fixed"
       />
     </Wrapper>
   );
@@ -110,13 +159,13 @@ export function SelectField({
   const controlled = value !== undefined;
   return (
     <Wrapper {...props}>
-      <select
+      <NativeSelect
         id={props.name}
         name={props.name}
+        aria-invalid={invalid(props.errors)}
         {...(controlled
           ? { value, onChange: (event) => onChange?.(event.target.value) }
           : { defaultValue: defaultValue ?? '' })}
-        className={inputClass(Boolean(props.errors?.length))}
       >
         <option value="">{emptyLabel}</option>
         {options.map((option) => (
@@ -124,7 +173,7 @@ export function SelectField({
             {option.name}
           </option>
         ))}
-      </select>
+      </NativeSelect>
     </Wrapper>
   );
 }
@@ -137,24 +186,56 @@ export function CheckboxGroup({
   columns = 2,
   ...props
 }: BaseProps & { options: Option[]; selected: string[]; columns?: number }) {
+  // Los ids tienen que ser unicos en toda la pagina: "Categorias del menu" y
+  // "Compatible con" comparten opciones, y con ids repetidos hacer clic en una
+  // etiqueta marcaria la casilla del otro grupo.
+  const groupId = useId();
+
   return (
-    <Wrapper {...props}>
+    <Wrapper {...props} group>
       <div
-        className={`grid gap-x-4 gap-y-2 ${columns === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}
+        className={`grid gap-x-4 gap-y-2.5 ${columns === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}
       >
-        {options.map((option) => (
-          <label key={option.id} className="flex items-center gap-2 text-sm text-carbon-700">
-            <input
-              type="checkbox"
-              name={props.name}
-              value={option.id}
-              defaultChecked={selected.includes(option.id)}
-              className="h-4 w-4 rounded border-carbon-300 text-carbon-900"
-            />
-            {option.name}
-          </label>
-        ))}
+        {options.map((option) => {
+          const id = `${groupId}-${option.id}`;
+          return (
+            <div key={option.id} className="flex items-center gap-2">
+              <Checkbox
+                id={id}
+                name={props.name}
+                value={option.id}
+                defaultChecked={selected.includes(option.id)}
+              />
+              <Label htmlFor={id} className="font-normal text-muted-foreground">
+                {option.name}
+              </Label>
+            </div>
+          );
+        })}
       </div>
     </Wrapper>
+  );
+}
+
+/// Una sola casilla con su explicacion debajo.
+export function CheckboxField({
+  name,
+  label,
+  hint,
+  defaultChecked,
+}: {
+  name: string;
+  label: string;
+  hint?: string;
+  defaultChecked?: boolean;
+}) {
+  return (
+    <div className="flex items-start gap-2.5">
+      <Checkbox id={name} name={name} defaultChecked={defaultChecked} className="mt-0.5" />
+      <div className="space-y-0.5">
+        <Label htmlFor={name}>{label}</Label>
+        {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+      </div>
+    </div>
   );
 }

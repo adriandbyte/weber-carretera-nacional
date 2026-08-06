@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@weber/db';
 import { findPending } from '@weber/core';
+import { PageHeader } from '@/components/page-header';
 import { deleteImage, saveProduct, setPrimaryImage, uploadImage } from './actions';
 import { ProductForm } from './product-form';
 import { ImageManager } from './image-manager';
@@ -69,33 +70,36 @@ export default async function ProductoPage({ params }: { params: Promise<{ id: s
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <a href="/productos" className="text-sm text-carbon-400 hover:text-carbon-700">
-            ← Productos
-          </a>
-          <h1 className="mt-1 font-display text-2xl font-bold text-carbon-900">{product.name}</h1>
-          <p className="mt-1 text-sm text-carbon-400">SKU {product.sku}</p>
-        </div>
-        <p className="text-sm text-carbon-400">
-          Quedan {pendingCount} productos por revisar
-        </p>
-      </div>
+      <PageHeader
+        back={{ href: '/productos', label: 'Productos' }}
+        title={product.name}
+        description={
+          <>
+            SKU <span className="font-mono text-xs">{product.sku}</span>
+          </>
+        }
+        actions={
+          <span className="text-sm text-muted-foreground">
+            Quedan <span className="tabular-nums">{pendingCount}</span> productos por revisar
+          </span>
+        }
+      />
 
       <div className="mb-6">
         <PendingList items={pending} />
       </div>
 
-      <ImageManager
-        images={product.images}
-        uploadAction={uploadImage.bind(null, product.id)}
-        deleteAction={deleteImage}
-        setPrimaryAction={setPrimaryImage}
-      />
-
-      <div className="mt-6">
+      <div>
         <ProductForm
           action={saveProduct.bind(null, product.id)}
+          media={
+            <ImageManager
+              images={product.images}
+              uploadAction={uploadImage.bind(null, product.id)}
+              deleteAction={deleteImage}
+              setPrimaryAction={setPrimaryImage}
+            />
+          }
           catalogs={{ productTypes, fuelTypes, series, formats, colors, sizes, categories }}
           equipmentTypeIds={equipmentTypeIds}
           values={{

@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { pluralize } from '@weber/core';
+import { PageHeader } from '@/components/page-header';
 import { CATALOGS } from '@/lib/catalogos';
 import { createCatalogItem, deleteCatalogItem, updateCatalogItem } from '../actions';
 import { CatalogTable } from './catalog-table';
@@ -22,25 +23,24 @@ export default async function CatalogoPage({ params }: { params: Promise<{ tipo:
 
   return (
     <div>
-      <a href="/catalogos" className="text-sm text-carbon-400 hover:text-carbon-700">
-        ← Catálogos
-      </a>
-      <h1 className="mt-1 font-display text-2xl font-bold text-carbon-900">{catalog.label}</h1>
-      <p className="mt-1 max-w-2xl text-sm text-carbon-400">{catalog.description}</p>
+      <PageHeader
+        back={{ href: '/catalogos', label: 'Catálogos' }}
+        title={catalog.label}
+        description={catalog.description}
+        actions={
+          <span className="text-sm text-muted-foreground tabular-nums">
+            {pluralize(rows.length, 'opción', 'opciones')} · {enUso} en uso
+          </span>
+        }
+      />
 
-      <p className="mt-4 text-sm text-carbon-400">
-        {pluralize(rows.length, 'opción', 'opciones')} · {enUso} en uso
-      </p>
-
-      <div className="mt-4">
-        <CatalogTable
-          rows={rows}
-          hasHex={catalog.hasHex ?? false}
-          singular={catalog.singular}
-          updateAction={updateCatalogItem.bind(null, tipo)}
-          deleteAction={deleteCatalogItem.bind(null, tipo)}
-        />
-      </div>
+      <CatalogTable
+        rows={rows}
+        hasHex={catalog.hasHex ?? false}
+        singular={catalog.singular}
+        updateAction={updateCatalogItem.bind(null, tipo)}
+        deleteAction={deleteCatalogItem.bind(null, tipo)}
+      />
 
       <div className="mt-6">
         <NewItemForm

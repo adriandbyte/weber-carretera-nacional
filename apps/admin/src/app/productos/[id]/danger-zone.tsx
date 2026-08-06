@@ -1,6 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 /// Baja definitiva de un producto.
 ///
@@ -20,7 +23,7 @@ export function DangerZone({
 
   if (!canDelete) {
     return (
-      <p className="mt-8 text-xs text-carbon-300">
+      <p className="mt-8 text-xs text-muted-foreground">
         Este producto ya estuvo publicado, así que no se puede eliminar. Cámbialo a Archivado si ya
         no debe aparecer en la tienda.
       </p>
@@ -29,47 +32,44 @@ export function DangerZone({
 
   if (!open) {
     return (
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         onClick={() => setOpen(true)}
-        className="mt-8 text-xs text-carbon-300 underline hover:text-ember-600"
+        className="mt-8 text-muted-foreground hover:text-destructive"
       >
+        <Trash2 data-icon="inline-start" />
         Eliminar este producto
-      </button>
+      </Button>
     );
   }
 
   return (
     <form
       action={action}
-      className="mt-8 rounded-card border border-ember-300 bg-ember-100 p-5 text-sm text-ember-700"
+      className="mt-8 rounded-xl border border-destructive/30 bg-destructive/5 p-5 text-sm"
     >
-      <p className="font-semibold">Eliminar definitivamente</p>
-      <p className="mt-1">
+      <p className="font-medium text-destructive">Eliminar definitivamente</p>
+      <p className="mt-1 text-muted-foreground">
         Se borran también sus imágenes y no hay forma de recuperarlo. Escribe el SKU{' '}
-        <strong>{sku}</strong> para confirmar.
+        <strong className="font-mono text-xs text-foreground">{sku}</strong> para confirmar.
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <input
+        <Input
           name="sku"
           required
           autoComplete="off"
           placeholder={sku}
-          className="w-40 rounded-md border border-ember-300 px-3 py-2 text-sm text-carbon-900"
+          aria-label="SKU de confirmación"
+          className="w-40 bg-card font-mono text-xs"
         />
-        <button
-          type="submit"
-          className="rounded-md bg-ember-600 px-4 py-2 text-sm font-medium text-white hover:bg-ember-700"
-        >
+        <Button type="submit" variant="destructive">
           Eliminar
-        </button>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="text-sm underline"
-        >
+        </Button>
+        <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
           Cancelar
-        </button>
+        </Button>
       </div>
     </form>
   );

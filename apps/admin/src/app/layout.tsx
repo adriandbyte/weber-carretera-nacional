@@ -1,5 +1,15 @@
 import type { Metadata } from 'next';
+import { Geist, Geist_Mono } from 'next/font/google';
+import { TriangleAlert } from 'lucide-react';
+import { AppSidebar } from '@/components/app-sidebar';
+import { ThemeProvider } from '@/components/theme-provider';
+import { Toaster } from '@/components/ui/sonner';
 import './globals.css';
+
+const sans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' });
+/// Solo para SKUs y claves. Un codigo como 14505601 se lee y se compara mejor
+/// cuando todos los digitos ocupan lo mismo.
+const mono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' });
 
 export const metadata: Metadata = {
   title: { default: 'Panel de administración', template: '%s | Admin' },
@@ -12,45 +22,38 @@ export const metadata: Metadata = {
 function AccessNotice() {
   if (process.env.ADMIN_PASSWORD) return null;
   return (
-    <div className="bg-ember-500 px-6 py-2 text-sm font-medium text-white">
-      Panel sin contraseña. Configura ADMIN_PASSWORD antes de ponerlo en una URL pública.
+    <div className="flex items-center gap-2 border-b border-warning-border bg-warning-muted px-8 py-2 text-sm text-warning">
+      <TriangleAlert className="size-4 shrink-0" />
+      <span>
+        <span className="font-medium">Panel sin contraseña.</span> Configura{' '}
+        <code className="font-mono text-xs">ADMIN_PASSWORD</code> antes de ponerlo en una URL
+        pública.
+      </span>
     </div>
   );
 }
 
-/// Solo lo que existe. Contenido, Prospectos y Configuracion se agregan
-/// cuando tengan pantalla: un enlace que lleva a un 404 hace dudar de todo lo
-/// demas que hay en la pantalla.
-const NAV = [
-  { href: '/', label: 'Resumen' },
-  { href: '/productos', label: 'Productos' },
-  { href: '/catalogos', label: 'Catálogos' },
-];
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es-MX">
-      <body className="bg-steel-100 text-carbon-800 antialiased">
-        <div className="flex min-h-screen">
-          <aside className="w-56 shrink-0 border-r border-carbon-200 bg-white">
-            <div className="px-5 py-5 font-display text-lg font-bold text-carbon-900">Admin</div>
-            <nav className="px-2">
-              {NAV.map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className="block rounded-md px-3 py-2 text-sm text-carbon-600 hover:bg-steel-100 hover:text-carbon-900"
-                >
-                  {item.label}
-                </a>
-              ))}
-            </nav>
-          </aside>
-          <div className="min-w-0 flex-1">
-            <AccessNotice />
-            <main className="p-8">{children}</main>
+    // suppressHydrationWarning: next-themes escribe la clase del tema en <html>
+    // antes de que React hidrate, asi que el servidor y el cliente difieren ahi
+    // a proposito. Es el precio de no ver un parpadeo blanco al cargar.
+    <html lang="es-MX" suppressHydrationWarning className={`${sans.variable} ${mono.variable}`}>
+      <body className="antialiased">
+        <ThemeProvider>
+          <div className="flex min-h-screen">
+            <AppSidebar />
+            <div className="min-w-0 flex-1">
+              <AccessNotice />
+              <main className="mx-auto max-w-[88rem] px-8 py-8">{children}</main>
+            </div>
           </div>
-        </div>
+          {/* Arriba y no abajo: la ficha de producto lleva una barra fija de
+              acciones pegada al borde inferior, y ahi el aviso caia justo
+              encima del boton de guardar durante los segundos siguientes a
+              pulsarlo. */}
+          <Toaster position="top-right" richColors closeButton />
+        </ThemeProvider>
       </body>
     </html>
   );

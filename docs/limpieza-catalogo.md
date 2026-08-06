@@ -36,7 +36,7 @@ En la ficha, los campos marcados con **\*** son los obligatorios para publicar:
 | --- | --- |
 | **Nombre \*** | Contenido |
 | **Descripción corta \*** | Contenido |
-| **Imágenes \*** | Arriba de todo, al menos una |
+| **Imágenes \*** | Columna derecha, al menos una |
 | **Tipo de producto \*** | Clasificación |
 | **Categorías del menú \*** | Clasificación, al menos una |
 
@@ -79,6 +79,10 @@ dice *"Este producto está completo"*, ya solo queda desmarcar la casilla.
 El panel además lleva la cuenta general: en **Resumen** hay una barra de avance
 que sube conforme se completan productos, y tres tarjetas que llevan directo a
 lo que falta.
+
+> **Un detalle de comodidad.** Abajo del todo, en la barra de la izquierda, hay
+> un botón para cambiar entre modo claro y modo oscuro. Son muchas horas de
+> pantalla: si de noche cansa la vista, se cambia ahí y el panel lo recuerda.
 
 > **Los precios no son parte de esto.** Llegan después con la lista del
 > proveedor y se cargan de golpe. Si el campo de precio está vacío, está bien.
@@ -157,8 +161,13 @@ Si falta una opción en cualquiera de esos menús, se agrega en la sección
 
 ### Imágenes
 
-Se sube arrastrando el archivo o con el botón. La primera imagen es la portada,
-y se puede cambiar con "Usar de portada".
+Están en la columna derecha de la ficha, arriba de Publicación. El botón
+**Subir imagen** abre el explorador de archivos y la subida arranca en cuanto
+eliges la foto, sin pasos intermedios.
+
+Debajo de cada foto hay dos botones: la **estrella** la pone de portada (la
+portada es la que se ve en las listas y en la tienda) y el **bote de basura** la
+elimina. Si borras la portada, la siguiente foto ocupa su lugar sola.
 
 318 productos ya traen su foto del Excel. **22 no traen ninguna** y hay que
 conseguirla antes de poder publicarlos. Están todos juntos en el filtro
