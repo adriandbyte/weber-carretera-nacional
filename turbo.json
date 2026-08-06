@@ -4,12 +4,22 @@
   "globalEnv": ["NODE_ENV"],
   "tasks": {
     "generate": {
+      // Prisma escribe el cliente dentro de node_modules, fuera de cualquier
+      // carpeta que turbo pueda declarar como salida. Cachear la tarea dejaria
+      // el cliente viejo en su sitio.
       "cache": false
     },
     "build": {
       "dependsOn": ["^build", "^generate"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"],
-      "env": ["DATABASE_URL", "BLOB_READ_WRITE_TOKEN", "NEXT_PUBLIC_*"]
+      "env": [
+        "DATABASE_URL",
+        "DIRECT_URL",
+        "BLOB_READ_WRITE_TOKEN",
+        "ADMIN_PASSWORD",
+        "NEXT_PUBLIC_*",
+        "VERCEL_PROJECT_PRODUCTION_URL"
+      ]
     },
     "dev": {
       "dependsOn": ["^generate"],
@@ -17,13 +27,24 @@
       "persistent": true
     },
     "lint": {
-      "dependsOn": ["^build"]
+      // Sin dependencias: ningun paquete compila a dist, las dos apps consumen
+      // core y db como fuente TypeScript. Encadenarlo a ^build solo serializaba
+      // lo que puede correr en paralelo.
+      "inputs": ["$TURBO_DEFAULT$", "eslint.config.mjs"]
     },
     "typecheck": {
-      "dependsOn": ["^build", "^generate"]
+      // Esto si necesita el cliente de Prisma generado: sin el no existen los
+      // tipos de @weber/db y tsc falla con cientos de errores enganosos.
+      "dependsOn": ["^generate"]
     },
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^generate"],
+      // Las pruebas consultan la base de datos real (que no haya URLs
+      // duplicadas, que el uso de cada catalogo cuadre). Su resultado depende
+      // de datos que turbo no puede ver, asi que un acierto de cache seria una
+      // prueba que en realidad no se ejecuto.
+      "cache": false,
+      "env": ["DATABASE_URL", "DIRECT_URL"]
     }
   }
 }

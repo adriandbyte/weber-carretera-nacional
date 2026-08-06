@@ -4,14 +4,12 @@
   "private": true,
   "files": [
     "tsconfig",
-    "tailwind",
     "eslint"
   ],
   "exports": {
     "./tsconfig/base.json": "./tsconfig/base.json",
     "./tsconfig/nextjs.json": "./tsconfig/nextjs.json",
     "./tsconfig/library.json": "./tsconfig/library.json",
-    "./tailwind": "./tailwind/preset.ts",
     "./eslint": "./eslint/index.mjs"
   },
   "devDependencies": {

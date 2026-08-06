@@ -13,3 +13,11 @@ coverage
 # de 20+ MB que se reemplazan cada vez que cambia el inventario, y cada version
 # quedaria en el historial para siempre. Ver README para donde colocarlos.
 /data/
+
+# Skills y ajustes locales de los agentes. Se instalan por maquina y son miles
+# de archivos duplicados en dos carpetas: dentro del repositorio solo serian
+# ruido en cada diff. Lo que hace falta para trabajar igual esta en CLAUDE.md,
+# que si se versiona.
+/.claude/
+/.agents/
+skills-lock.json
