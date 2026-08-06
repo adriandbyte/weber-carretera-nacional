@@ -84,13 +84,16 @@ export function resolveProductType(row: RawRow): string {
   if (d.includes('sazonador')) return 'sazonador';
   if (d.includes('bundle')) return 'paquete';
   if (d.includes('consumable') || d.includes('fuel')) return 'combustible';
-  if (e.includes('ahumador') || name.includes('ahumador') || name.includes('smoker')) {
-    return 'ahumador';
-  }
-  // Solo las columnas de categoria deciden que es una plancha. El nombre no
-  // sirve: "Funda para plancha" y "Espatula para plancha" son accesorios.
+  // Las columnas de categoria mandan sobre el nombre. Un nombre que menciona
+  // un tipo de equipo casi siempre es un accesorio PARA ese equipo:
+  // "Caja para Ahumador" es una caja de astillas, no un ahumador, igual que
+  // "Funda para plancha" no es una plancha.
+  if (e.includes('ahumador')) return 'ahumador';
   if (d.includes('griddle') || e.includes('plancha')) return 'plancha';
   if (d.includes('accesorio') || e.includes('accesorio')) return 'accesorio';
+
+  // Ya sin columnas que consultar, el nombre es lo unico que queda.
+  if (name.includes('ahumador') || name.includes('smoker')) return 'ahumador';
   return 'asador';
 }
 
