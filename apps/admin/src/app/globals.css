@@ -75,11 +75,15 @@
   --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  /* Fijo, no derivado de --radius: las insignias son pastillas y tienen que
+     seguir siendolo aunque se baje el redondeo general de botones y campos. */
+  --radius-4xl: 999px;
 }
 
 :root {
-  --radius: 0.625rem;
+  /* Redondeo contenido: con 10px los botones de 32px de alto parecian pastillas
+     y competian con las insignias, que si lo son. */
+  --radius: 0.375rem;
 
   /* Neutros calidos, no grises azulados: acompañan al rojo de la marca en vez
      de pelearse con el. */

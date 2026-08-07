@@ -114,7 +114,7 @@ export function ProductTableSkeleton({ rows = 12 }: { rows?: number }) {
                 <Skeleton className="ml-auto h-4 w-16" />
               </TableCell>
               <TableCell className="px-4">
-                <Skeleton className="h-5 w-20 rounded-md" />
+                <Skeleton className="h-5 w-20 rounded-full" />
               </TableCell>
             </TableRow>
           ))}
