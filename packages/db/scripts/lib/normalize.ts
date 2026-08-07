@@ -46,18 +46,24 @@ const clean = (v: string | null | undefined): string => (v ?? '').replace(/\s+/g
 /// Quita acentos y simbolos para poder comparar sin sorpresas.
 /// "Génesis" y "Genesis" deben caer en la misma serie.
 export function fold(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
+  return value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 }
 
+/// Tiene que producir exactamente lo mismo que slugify de @weber/core.
+///
+/// Esta duplicada porque @weber/core ya depende de @weber/db, y hacer que el
+/// importador importe de core cerraria el ciclo entre los dos paquetes. Para
+/// que las dos copias no se separen hay una prueba que las compara sobre los
+/// nombres reales del catalogo: si alguien toca una y no la otra, falla.
+///
+/// Antes cortaba a 80 y la de core a 120, asi que el importador dejaba slugs
+/// truncados que el panel recalculaba distintos al primer guardado.
 export function slugify(value: string): string {
   return fold(value)
     .replace(/["'®™]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
-    .slice(0, 80);
+    .slice(0, 120);
 }
 
 // --- Tipo de producto ------------------------------------------------------
@@ -155,7 +161,11 @@ export const SERIES: SeriesDef[] = [
   { slug: 'master-touch', name: 'Master-Touch', patterns: ['master-touch', 'master touch'] },
   { slug: 'performer', name: 'Performer', patterns: ['performer'] },
   { slug: 'ranch-kettle', name: 'Ranch Kettle', patterns: ['ranch kettle'] },
-  { slug: 'original-kettle', name: 'Original Kettle', patterns: ['original kettle', 'orig kettle'] },
+  {
+    slug: 'original-kettle',
+    name: 'Original Kettle',
+    patterns: ['original kettle', 'orig kettle'],
+  },
   { slug: 'compact', name: 'Compact', patterns: ['compact'] },
   { slug: 'kamado', name: 'Kamado', patterns: ['kamado'] },
   { slug: 'q', name: 'Q', patterns: [] }, // se detecta aparte, ver abajo
@@ -228,19 +238,34 @@ interface ColorDef {
 }
 
 export const COLORS: ColorDef[] = [
-  { slug: 'negro-mate', name: 'Negro mate', hex: '#2B2B2B', patterns: ['negro mate', 'matte black'] },
+  {
+    slug: 'negro-mate',
+    name: 'Negro mate',
+    hex: '#2B2B2B',
+    patterns: ['negro mate', 'matte black'],
+  },
   { slug: 'negro', name: 'Negro', hex: '#1A1A1A', patterns: ['negro', 'black', ' blk'] },
   { slug: 'crimson', name: 'Crimson', hex: '#8C1D1D', patterns: ['crimson'] },
   { slug: 'ivory', name: 'Ivory', hex: '#EFE6D5', patterns: ['ivory', 'marfil'] },
   { slug: 'smoke', name: 'Smoke', hex: '#5A5A57', patterns: ['deep smoke', 'smoke'] },
   { slug: 'slate-blue', name: 'Slate Blue', hex: '#5A6B7D', patterns: ['slate blue'] },
   { slug: 'spring-green', name: 'Spring Green', hex: '#7A8B4A', patterns: ['spring green'] },
-  { slug: 'deep-ocean-blue', name: 'Deep Ocean Blue', hex: '#1F3A5F', patterns: ['deep ocean blue'] },
+  {
+    slug: 'deep-ocean-blue',
+    name: 'Deep Ocean Blue',
+    hex: '#1F3A5F',
+    patterns: ['deep ocean blue'],
+  },
   { slug: 'cobre', name: 'Cobre', hex: '#A65E2E', patterns: ['cobre', 'copper'] },
   { slug: 'verde', name: 'Verde', hex: '#2F5D3A', patterns: ['verde', 'green'] },
   { slug: 'rojo', name: 'Rojo', hex: '#B3261E', patterns: ['rojo', 'red'] },
   { slug: 'azul', name: 'Azul', hex: '#1E4E8C', patterns: ['azul', 'blue'] },
-  { slug: 'acero-inoxidable', name: 'Acero inoxidable', hex: '#B8BCC0', patterns: [' ss ', 'stainless', 'inoxidable'] },
+  {
+    slug: 'acero-inoxidable',
+    name: 'Acero inoxidable',
+    hex: '#B8BCC0',
+    patterns: [' ss ', 'stainless', 'inoxidable'],
+  },
   { slug: 'stealth', name: 'Stealth', hex: '#3A3A3A', patterns: ['stealth'] },
 ];
 
@@ -381,7 +406,13 @@ export function normalizeRow(row: RawRow): NormalizedProduct {
   return {
     sku: row.sku,
     name: clean(row.name),
-    slug: slugify(`${row.name} ${row.sku}`),
+    // Sin el SKU pegado: es la direccion que va a ver el cliente y
+    // "plancha-para-genesis-ii" se lee mejor que "...-7599". El SKU solo entra
+    // cuando dos productos chocan, y eso se resuelve al insertar, que es donde
+    // se sabe que slugs estan tomados. Es la misma regla que aplica el panel
+    // en deriveSlug; cuando eran distintas, guardar una ficha le cambiaba la
+    // URL sin que nadie lo pidiera.
+    slug: slugify(row.name),
     productTypeSlug: productType,
     fuelTypeSlug: fuel,
     seriesSlug: series,

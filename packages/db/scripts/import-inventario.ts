@@ -41,7 +41,9 @@ async function main() {
 
   const { rows, images, skippedRows, unsupported } = await readInventory(file);
   const products = rows.map(normalizeRow);
-  console.log(`  ${rows.length} productos, ${images.length} imagenes, ${skippedRows} filas sin SKU`);
+  console.log(
+    `  ${rows.length} productos, ${images.length} imagenes, ${skippedRows} filas sin SKU`,
+  );
   if (unsupported.length > 0) {
     console.log(
       `  ${unsupported.length} imagenes ignoradas por formato no soportado en navegador ` +
@@ -56,6 +58,17 @@ async function main() {
   console.log('Importando productos');
   let created = 0;
   let updated = 0;
+
+  /// Resuelve el choque de direcciones igual que deriveSlug en el panel.
+  ///
+  /// Dos productos pueden llamarse igual de forma legitima: el mismo modelo en
+  /// dos medidas comparte nombre hasta que alguien lo redacta completo. El SKU
+  /// los desempata, y solo entonces aparece en la URL.
+  const resolveSlug = async (base: string, sku: string): Promise<string> => {
+    if (!base) return sku.toLowerCase();
+    const taken = await prisma.product.findUnique({ where: { slug: base }, select: { id: true } });
+    return taken ? `${base}-${sku.toLowerCase()}` : base;
+  };
 
   for (const product of products) {
     const existing = await prisma.product.findUnique({ where: { sku: product.sku } });
@@ -83,7 +96,7 @@ async function main() {
       update: derived,
       create: {
         sku: product.sku,
-        slug: product.slug,
+        slug: await resolveSlug(product.slug, product.sku),
         name: product.name,
         status: product.status,
         metaTitle: `${product.name} | Weber`,
@@ -188,7 +201,9 @@ async function main() {
 
   console.log(
     `  ${savedImages} imagenes nuevas, ${reusedImages} ya existentes` +
-      (movedImages > 0 ? `, ${movedImages} movidas a ${store.kind === 'blob' ? 'la nube' : 'disco'}` : ''),
+      (movedImages > 0
+        ? `, ${movedImages} movidas a ${store.kind === 'blob' ? 'la nube' : 'disco'}`
+        : ''),
   );
 
   // --- Reporte final -----------------------------------------------------
