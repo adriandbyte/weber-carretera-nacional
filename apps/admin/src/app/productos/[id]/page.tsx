@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@weber/db';
-import { findPending } from '@weber/core';
+import { acceptsCompatibility, findPending } from '@weber/core';
+import { countPending } from '@/lib/productos';
 import { PageHeader } from '@/components/page-header';
 import { deleteImage, saveProduct, setPrimaryImage, uploadImage } from './actions';
 import { ProductForm } from './product-form';
@@ -41,17 +42,36 @@ export default async function ProductoPage({ params }: { params: Promise<{ id: s
         orderBy: { position: 'asc' },
         select: { ...OPTION, slug: true },
       }),
-      prisma.fuelType.findMany({ where: { active: true }, orderBy: { position: 'asc' }, select: OPTION }),
+      prisma.fuelType.findMany({
+        where: { active: true },
+        orderBy: { position: 'asc' },
+        select: OPTION,
+      }),
       prisma.series.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: OPTION }),
-      prisma.format.findMany({ where: { active: true }, orderBy: { position: 'asc' }, select: OPTION }),
+      prisma.format.findMany({
+        where: { active: true },
+        orderBy: { position: 'asc' },
+        select: OPTION,
+      }),
       prisma.color.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: OPTION }),
-      prisma.sizeOption.findMany({ where: { active: true }, orderBy: { position: 'asc' }, select: OPTION }),
-      prisma.category.findMany({ where: { active: true }, orderBy: { position: 'asc' }, select: OPTION }),
+      prisma.sizeOption.findMany({
+        where: { active: true },
+        orderBy: { position: 'asc' },
+        select: OPTION,
+      }),
+      prisma.category.findMany({
+        where: { active: true },
+        orderBy: { position: 'asc' },
+        select: OPTION,
+      }),
     ]);
 
   if (!product) notFound();
 
-  const pendingCount = await prisma.product.count({ where: { needsReview: true } });
+  // Cuenta lo mismo que recorre "Guardar y seguir". Cuando contaba solo
+  // needsReview decia 104 mientras el boton encadenaba 331: el numero de la
+  // cabecera no era el del trabajo que quedaba.
+  const pendingCount = await countPending();
 
   const pending = findPending({
     name: product.name,
@@ -64,8 +84,11 @@ export default async function ProductoPage({ params }: { params: Promise<{ id: s
 
   // "Compatible con" solo aplica a lo que acompaña a un asador. Mostrar 17
   // casillas de series en la ficha de un asador es ruido puro.
+  //
+  // La regla viene de @weber/core para que la pantalla y el guardado usen la
+  // misma: cuando cada uno tenia la suya, esconder el bloque borraba datos.
   const equipmentTypeIds = productTypes
-    .filter((type) => ['asador', 'ahumador', 'plancha'].includes(type.slug))
+    .filter((type) => !acceptsCompatibility(type.slug))
     .map((type) => type.id);
 
   return (
@@ -79,8 +102,8 @@ export default async function ProductoPage({ params }: { params: Promise<{ id: s
           </>
         }
         actions={
-          <span className="text-sm text-muted-foreground">
-            Quedan <span className="tabular-nums">{pendingCount}</span> productos por revisar
+          <span className="text-muted-foreground text-sm">
+            Quedan <span className="tabular-nums">{pendingCount}</span> productos por limpiar
           </span>
         }
       />
@@ -104,6 +127,8 @@ export default async function ProductoPage({ params }: { params: Promise<{ id: s
           equipmentTypeIds={equipmentTypeIds}
           values={{
             name: product.name,
+            slug: product.slug,
+            published: product.publishedAt !== null,
             shortDescription: product.shortDescription,
             description: product.description,
             status: product.status,

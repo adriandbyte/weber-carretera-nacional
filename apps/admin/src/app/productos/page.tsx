@@ -35,17 +35,24 @@ const FILTERS: Record<string, { label: string; where: Prisma.ProductWhereInput }
   revision: { label: 'Por revisar', where: { needsReview: true } },
   listos: { label: 'Revisados', where: { needsReview: false } },
   'sin-imagen': { label: 'Sin imagen', where: { images: { none: {} } } },
-  'sin-descripcion': { label: 'Sin descripción', where: { description: null } },
+  // La corta es la que impide publicar y la que se lee en las listas y en
+  // Google; la completa solo es recomendable. Estaban al reves: el filtro
+  // llamado "Sin descripción" miraba la completa, asi que mandaba a redactar
+  // fichas enteras antes que el campo que de verdad bloquea.
+  'sin-descripcion-corta': { label: 'Sin descripción corta', where: { shortDescription: null } },
+  'sin-descripcion': { label: 'Sin descripción larga', where: { description: null } },
+  'sin-categoria': { label: 'Sin categoría', where: { categories: { none: {} } } },
   publicados: { label: 'Publicados', where: { status: 'ACTIVE' } },
   borradores: { label: 'Borradores', where: { status: 'DRAFT' } },
 };
 
-const SORTS: Record<string, { label: string; orderBy: Prisma.ProductOrderByWithRelationInput[] }> = {
-  nombre: { label: 'Nombre', orderBy: [{ name: 'asc' }] },
-  sku: { label: 'SKU', orderBy: [{ sku: 'asc' }] },
-  revisar: { label: 'Por revisar primero', orderBy: [{ needsReview: 'desc' }, { name: 'asc' }] },
-  recientes: { label: 'Editados al final', orderBy: [{ updatedAt: 'desc' }] },
-};
+const SORTS: Record<string, { label: string; orderBy: Prisma.ProductOrderByWithRelationInput[] }> =
+  {
+    nombre: { label: 'Nombre', orderBy: [{ name: 'asc' }] },
+    sku: { label: 'SKU', orderBy: [{ sku: 'asc' }] },
+    revisar: { label: 'Por revisar primero', orderBy: [{ needsReview: 'desc' }, { name: 'asc' }] },
+    recientes: { label: 'Editados al final', orderBy: [{ updatedAt: 'desc' }] },
+  };
 
 /// El filtro y la busqueda, traducidos a una condicion de Prisma.
 function buildWhere(filterKey: string, search: string): Prisma.ProductWhereInput {
@@ -129,28 +136,32 @@ async function ProductTable({ filterKey, sortKey, search, page }: Query) {
           </colgroup>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="px-4 text-muted-foreground">Producto</TableHead>
-              <TableHead className="px-4 text-muted-foreground">SKU</TableHead>
-              <TableHead className="px-4 text-muted-foreground">Tipo</TableHead>
-              <TableHead className="px-4 text-muted-foreground">Serie</TableHead>
-              <TableHead className="px-4 text-right text-muted-foreground">Precio</TableHead>
-              <TableHead className="px-4 text-muted-foreground">Estado</TableHead>
+              <TableHead className="text-muted-foreground px-4">Producto</TableHead>
+              <TableHead className="text-muted-foreground px-4">SKU</TableHead>
+              <TableHead className="text-muted-foreground px-4">Tipo</TableHead>
+              <TableHead className="text-muted-foreground px-4">Serie</TableHead>
+              <TableHead className="text-muted-foreground px-4 text-right">Precio</TableHead>
+              <TableHead className="text-muted-foreground px-4">Estado</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {products.length === 0 && (
               <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={6} className="px-4 py-16 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-muted-foreground px-4 py-16 text-center">
                   Ningún producto coincide con este filtro.
                 </TableCell>
               </TableRow>
             )}
             {products.map((product) => (
-              <TableRow key={product.id}>
-                <TableCell className="px-4 py-3 whitespace-normal">
+              // Todas las celdas arriba y con el mismo relleno: cuando el
+              // nombre ocupa dos lineas, centrar el resto los dejaba flotando a
+              // media altura y la fila se leia torcida. Alineadas arriba, la
+              // primera linea de cada columna cae siempre en el mismo renglon.
+              <TableRow key={product.id} className="[&>td]:py-3 [&>td]:align-top">
+                <TableCell className="px-4 whitespace-normal">
                   <div className="flex items-start gap-3">
                     <div
-                      className={`flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md ring-1 ring-foreground/10 ${
+                      className={`ring-foreground/10 flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md ring-1 ${
                         product.images[0] ? 'bg-photo' : 'bg-muted'
                       }`}
                     >
@@ -166,7 +177,7 @@ async function ProductTable({ filterKey, sortKey, search, page }: Query) {
                           className="size-full object-contain"
                         />
                       ) : (
-                        <ImageOff className="size-4 text-muted-foreground/60" />
+                        <ImageOff className="text-muted-foreground/60 size-4" />
                       )}
                     </div>
                     {/* La etiqueta va pegada al nombre y no alineada al borde
@@ -175,7 +186,7 @@ async function ProductTable({ filterKey, sortKey, search, page }: Query) {
                     <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
                       <Link
                         href={`/productos/${product.id}`}
-                        className="line-clamp-2 font-medium transition-colors hover:text-primary"
+                        className="hover:text-primary line-clamp-2 font-medium transition-colors"
                       >
                         {product.name}
                       </Link>
@@ -191,13 +202,16 @@ async function ProductTable({ filterKey, sortKey, search, page }: Query) {
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="px-4 font-mono text-xs text-muted-foreground">
+                {/* `leading-5` iguala la caja de linea del SKU (mas pequeño y
+                    monoespaciado) a la de las demas columnas: sin esto se
+                    apoyaba un par de pixeles mas arriba que el resto. */}
+                <TableCell className="text-muted-foreground px-4 font-mono text-xs leading-5">
                   {product.sku}
                 </TableCell>
-                <TableCell className="truncate px-4 text-muted-foreground">
+                <TableCell className="text-muted-foreground truncate px-4">
                   {product.productType?.name ?? '-'}
                 </TableCell>
-                <TableCell className="truncate px-4 text-muted-foreground">
+                <TableCell className="text-muted-foreground truncate px-4">
                   {product.series?.name ?? '-'}
                 </TableCell>
                 <TableCell className="px-4 text-right tabular-nums">
@@ -248,7 +262,7 @@ export default async function ProductosPage({
             // Un <div> dentro del <p> de la bajada no es HTML valido, asi que
             // este es el unico esqueleto que no usa el componente Skeleton.
             fallback={
-              <span className="inline-block h-4 w-40 animate-pulse rounded-md bg-muted align-middle" />
+              <span className="bg-muted inline-block h-4 w-40 animate-pulse rounded-md align-middle" />
             }
           >
             <TotalLabel filterKey={filterKey} search={search} page={page} />
@@ -276,7 +290,18 @@ export default async function ProductosPage({
             variant={key === filterKey ? 'default' : 'outline'}
             aria-current={key === filterKey ? 'page' : undefined}
           >
-            <Link href={`/productos?filtro=${key}&orden=${sortKey}`}>{filter.label}</Link>
+            {/* La busqueda viaja con el filtro. Sin esto, buscar "genesis" y
+                pulsar "Sin imagen" perdia el termino sin avisar, y la lista
+                que salia parecia el resultado de la busqueda. */}
+            <Link
+              href={`/productos?${new URLSearchParams({
+                filtro: key,
+                orden: sortKey,
+                ...(search ? { q: search } : {}),
+              })}`}
+            >
+              {filter.label}
+            </Link>
           </Button>
         ))}
       </div>
@@ -286,14 +311,14 @@ export default async function ProductosPage({
           <input type="hidden" name="filtro" value={filterKey} />
           <input type="hidden" name="orden" value={sortKey} />
           <div className="relative">
-            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
             <Input
               type="search"
               name="q"
               defaultValue={search}
               placeholder="Buscar por nombre o SKU"
               aria-label="Buscar por nombre o SKU"
-              className="w-72 bg-card pl-8"
+              className="bg-card w-72 pl-8"
             />
           </div>
           <Button type="submit" variant="outline">
@@ -306,13 +331,13 @@ export default async function ProductosPage({
           )}
         </form>
 
-        <form action="/productos" className="flex items-center gap-2 text-sm text-muted-foreground">
+        <form action="/productos" className="text-muted-foreground flex items-center gap-2 text-sm">
           <input type="hidden" name="filtro" value={filterKey} />
           {search && <input type="hidden" name="q" value={search} />}
           <label htmlFor="orden" className="whitespace-nowrap">
             Ordenar por
           </label>
-          <NativeSelect id="orden" name="orden" defaultValue={sortKey} className="w-52 bg-card">
+          <NativeSelect id="orden" name="orden" defaultValue={sortKey} className="bg-card w-52">
             {Object.entries(SORTS).map(([key, sort]) => (
               <option key={key} value={key}>
                 {sort.label}

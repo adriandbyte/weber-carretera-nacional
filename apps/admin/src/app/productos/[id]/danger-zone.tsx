@@ -67,7 +67,7 @@ export function DangerZone({
         <Button type="submit" variant="destructive">
           Eliminar
         </Button>
-        <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+        <Button type="button" variant="outline" onClick={() => setOpen(false)}>
           Cancelar
         </Button>
       </div>

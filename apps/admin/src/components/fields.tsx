@@ -22,6 +22,7 @@ interface BaseProps {
 
 function Wrapper({
   name,
+  controlId,
   label,
   hint,
   errors,
@@ -29,6 +30,12 @@ function Wrapper({
   group = false,
   children,
 }: BaseProps & {
+  /// El id real del control que hay debajo. No es el `name`: dos formularios en
+  /// la misma pagina pueden tener los dos un campo "name", y con el nombre como
+  /// id las dos etiquetas apuntarian al primer input. Pasaba en Categorias:
+  /// pulsar "Nombre" en el alta enfocaba el nombre de la fila que se editaba
+  /// arriba, y los lectores de pantalla leian el campo dos veces.
+  controlId?: string;
   /// Cierto cuando debajo hay varios controles y no uno solo. En ese caso el
   /// titulo no puede ser un <label for>: apuntaria a un id que no existe (el
   /// nombre del grupo no es el de ningun elemento) y el navegador lo reporta
@@ -36,7 +43,7 @@ function Wrapper({
   group?: boolean;
   children: React.ReactNode;
 }) {
-  const titleId = `${name}-label`;
+  const titleId = `${controlId ?? name}-label`;
   const title = (
     <>
       {label}
@@ -55,12 +62,12 @@ function Wrapper({
           {title}
         </p>
       ) : (
-        <Label htmlFor={name} className="gap-0.5">
+        <Label htmlFor={controlId ?? name} className="gap-0.5">
           {title}
         </Label>
       )}
 
-      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+      {hint && <p className="text-muted-foreground text-xs">{hint}</p>}
 
       {group ? (
         <div role="group" aria-labelledby={titleId}>
@@ -71,7 +78,7 @@ function Wrapper({
       )}
 
       {errors?.map((error) => (
-        <p key={error} className="text-xs font-medium text-destructive">
+        <p key={error} className="text-destructive text-xs font-medium">
           {error}
         </p>
       ))}
@@ -88,22 +95,40 @@ export function TextField({
   defaultValue,
   placeholder,
   type = 'text',
+  onValueChange,
+  after,
   ...props
-}: BaseProps & { defaultValue?: string | null; placeholder?: string; type?: string }) {
+}: BaseProps & {
+  defaultValue?: string | null;
+  placeholder?: string;
+  type?: string;
+  /// Solo para los campos de los que depende algo que se ve al lado mientras
+  /// se escribe. El campo sigue siendo no controlado: esto avisa, no manda.
+  onValueChange?: (value: string) => void;
+  /// Va debajo del input y encima de los errores. Para lo que acompaña al
+  /// campo sin ser una pista: por ejemplo la direccion que va a tener el
+  /// producto en la tienda.
+  after?: React.ReactNode;
+}) {
+  const controlId = useId();
   return (
-    <Wrapper {...props}>
-      <Input
-        id={props.name}
-        name={props.name}
-        type={type}
-        defaultValue={defaultValue ?? ''}
-        placeholder={placeholder}
-        aria-invalid={invalid(props.errors)}
-        // Nada de aqui es un dato de la persona que captura: son campos del
-        // producto. Sin esto el navegador ofrece su propio historial encima
-        // del campo, que aqui solo estorba.
-        autoComplete="off"
-      />
+    <Wrapper {...props} controlId={controlId}>
+      <>
+        <Input
+          id={controlId}
+          name={props.name}
+          type={type}
+          defaultValue={defaultValue ?? ''}
+          placeholder={placeholder}
+          onChange={onValueChange && ((event) => onValueChange(event.target.value))}
+          aria-invalid={invalid(props.errors)}
+          // Nada de aqui es un dato de la persona que captura: son campos del
+          // producto. Sin esto el navegador ofrece su propio historial encima
+          // del campo, que aqui solo estorba.
+          autoComplete="off"
+        />
+        {after}
+      </>
     </Wrapper>
   );
 }
@@ -114,10 +139,11 @@ export function TextArea({
   placeholder,
   ...props
 }: BaseProps & { defaultValue?: string | null; rows?: number; placeholder?: string }) {
+  const controlId = useId();
   return (
-    <Wrapper {...props}>
+    <Wrapper {...props} controlId={controlId}>
       <Textarea
-        id={props.name}
+        id={controlId}
         name={props.name}
         rows={rows}
         defaultValue={defaultValue ?? ''}
@@ -156,11 +182,12 @@ export function SelectField({
   onChange?: (value: string) => void;
   emptyLabel?: string;
 }) {
+  const controlId = useId();
   const controlled = value !== undefined;
   return (
-    <Wrapper {...props}>
+    <Wrapper {...props} controlId={controlId}>
       <NativeSelect
-        id={props.name}
+        id={controlId}
         name={props.name}
         aria-invalid={invalid(props.errors)}
         {...(controlled
@@ -206,7 +233,7 @@ export function CheckboxGroup({
                 value={option.id}
                 defaultChecked={selected.includes(option.id)}
               />
-              <Label htmlFor={id} className="font-normal text-muted-foreground">
+              <Label htmlFor={id} className="text-muted-foreground font-normal">
                 {option.name}
               </Label>
             </div>
@@ -234,7 +261,7 @@ export function CheckboxField({
       <Checkbox id={name} name={name} defaultChecked={defaultChecked} className="mt-0.5" />
       <div className="space-y-0.5">
         <Label htmlFor={name}>{label}</Label>
-        {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+        {hint && <p className="text-muted-foreground text-xs">{hint}</p>}
       </div>
     </div>
   );

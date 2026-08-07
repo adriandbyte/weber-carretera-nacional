@@ -51,7 +51,7 @@ export function NewProductForm({
 
           <div className="flex items-center gap-2 pt-1">
             <CreateButton />
-            <Button asChild variant="ghost" size="lg">
+            <Button asChild variant="outline" size="lg">
               <Link href="/productos">Cancelar</Link>
             </Button>
           </div>

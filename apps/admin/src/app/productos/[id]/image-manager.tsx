@@ -4,13 +4,7 @@ import { useRef, useTransition } from 'react';
 import { ImagePlus, Loader2, Star, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { FormState } from './actions';
 
 interface ImageRecord {
@@ -65,7 +59,10 @@ export function ImageManager({
   return (
     <Card size="sm">
       <CardHeader>
-        <CardTitle className="gap-0.5">
+        {/* CardTitle es un div sin flex, asi que un gap suelto no separaba
+            nada y el asterisco quedaba pegado: "Imágenes*" frente al
+            "Nombre *" del resto del formulario. */}
+        <CardTitle className="flex items-center gap-0.5">
           Imágenes
           <span className="text-primary" aria-hidden>
             *
@@ -84,18 +81,14 @@ export function ImageManager({
             {images.map((image) => (
               <li key={image.id}>
                 <div
-                  className={`relative aspect-square overflow-hidden rounded-lg bg-photo ring-2 ${
+                  className={`bg-photo relative aspect-square overflow-hidden rounded-lg ring-2 ${
                     image.isPrimary ? 'ring-primary' : 'ring-border'
                   }`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={image.url}
-                    alt={image.alt ?? ''}
-                    className="size-full object-contain"
-                  />
+                  <img src={image.url} alt={image.alt ?? ''} className="size-full object-contain" />
                   {image.isPrimary && (
-                    <span className="absolute top-1 left-1 inline-flex items-center gap-1 rounded-full bg-primary px-1.5 py-0.5 text-[0.65rem] leading-none font-medium text-primary-foreground">
+                    <span className="bg-primary text-primary-foreground absolute top-1 left-1 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[0.65rem] leading-none font-medium">
                       <Star className="size-2.5 fill-current" />
                       Portada
                     </span>
@@ -159,9 +152,7 @@ export function ImageManager({
           {pending ? 'Subiendo…' : 'Subir imagen'}
         </Button>
 
-        <p className="text-xs text-muted-foreground">
-          PNG, JPG o WebP. Se reduce y optimiza sola.
-        </p>
+        <p className="text-muted-foreground text-xs">PNG, JPG o WebP. Se reduce y optimiza sola.</p>
       </CardContent>
     </Card>
   );

@@ -15,8 +15,15 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma, Prisma } from '@weber/db';
-import { findPending, productSchema, slugify } from '@weber/core';
-import { del, put } from '@vercel/blob';
+import { acceptsCompatibility, findPending, productSchema, slugify } from '@weber/core';
+import { findNextPendingId } from '@/lib/productos';
+import {
+  prepareImage,
+  removeStoredImage,
+  savedPercent,
+  storeImage,
+  validateImage,
+} from '@/lib/imagenes';
 
 export interface FormState {
   ok: boolean;
@@ -71,6 +78,7 @@ export async function saveProduct(
     colorId: formData.get('colorId') ?? '',
     sizeId: formData.get('sizeId') ?? '',
     categoryIds: formData.getAll('categoryIds').map(String),
+    compatibilityEditable: formData.get('compatibilityEditable') === '1',
     compatibleSeriesIds: formData.getAll('compatibleSeriesIds').map(String),
     needsReview: formData.get('needsReview') === 'on',
   });
@@ -87,9 +95,21 @@ export async function saveProduct(
 
   const current = await prisma.product.findUnique({
     where: { id: productId },
-    select: { sku: true, slug: true, publishedAt: true },
+    // name es el nombre de antes de guardar: hace de cursor para "y seguir".
+    select: { sku: true, slug: true, publishedAt: true, name: true },
   });
   if (!current) return { ok: false, message: 'El producto ya no existe.' };
+
+  // El tipo mandado se resuelve a su slug para poder aplicar la misma regla que
+  // la pantalla. Que el formulario declare haber mostrado las casillas no basta:
+  // se puede editar en el navegador, y aqui es donde se decide de verdad.
+  const productType = data.productTypeId
+    ? await prisma.productType.findUnique({
+        where: { id: data.productTypeId },
+        select: { slug: true },
+      })
+    : null;
+  const editsCompatibility = data.compatibilityEditable && acceptsCompatibility(productType?.slug);
 
   // --- URL del producto --------------------------------------------------
   //
@@ -99,7 +119,10 @@ export async function saveProduct(
   //   Sin publicar  la URL sigue al nombre. No hay enlaces que romper.
   //   Publicado     la URL se congela aunque cambie el nombre. Ya circula en
   //                 enlaces y esta indexada; moverla tira lo ganado.
-  const slug = current.publishedAt === null ? await deriveSlug(data.name, current.sku, productId) : current.slug;
+  const slug =
+    current.publishedAt === null
+      ? await deriveSlug(data.name, current.sku, productId)
+      : current.slug;
 
   if (!slug) {
     return {
@@ -189,16 +212,42 @@ export async function saveProduct(
       });
     }
 
-    await tx.productCompatibility.deleteMany({ where: { productId } });
-    if (data.compatibleSeriesIds.length > 0) {
-      await tx.productCompatibility.createMany({
-        data: data.compatibleSeriesIds.map((seriesId) => ({ productId, seriesId })),
-      });
+    // Solo se toca si la pantalla llego a mostrar las casillas. Cuando el tipo
+    // elegido es un asador el bloque no se pinta, el navegador no envia nada y
+    // sin esta guarda el guardado leeria ese silencio como "borralas todas":
+    // un accesorio marcado como plancha por error perdia sus series sin que
+    // nadie viera un aviso, y no habia forma de recuperarlas.
+    if (editsCompatibility) {
+      await tx.productCompatibility.deleteMany({ where: { productId } });
+      if (data.compatibleSeriesIds.length > 0) {
+        await tx.productCompatibility.createMany({
+          data: data.compatibleSeriesIds.map((seriesId) => ({ productId, seriesId })),
+        });
+      }
     }
   });
 
   revalidatePath('/productos');
   revalidatePath(`/productos/${productId}`);
+
+  // A donde se va despues de guardar. Los tres caminos escriben primero: si la
+  // validacion hubiera fallado ya se habria devuelto el error mas arriba, asi
+  // que nunca se navega dejando cambios sin escribir.
+  const intent = formData.get('intent');
+
+  if (intent === 'next') {
+    // Encadenar fichas sin pasar por la lista es lo que convierte limpiar 331
+    // productos en algo que se hace de corrido.
+    const nextId = await findNextPendingId(current.name, productId);
+    // Sin siguiente es que ya no queda nada pendiente. Se vuelve a la lista en
+    // vez de recargar la misma ficha, que se leeria como que no paso nada.
+    redirect(nextId ? `/productos/${nextId}` : '/productos');
+  }
+
+  if (intent === 'exit') {
+    redirect('/productos');
+  }
+
   return { ok: true, message: 'Cambios guardados.' };
 }
 
@@ -214,53 +263,14 @@ export async function toggleReview(productId: string, reviewed: boolean) {
 
 // --- Imagenes --------------------------------------------------------------
 
-const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
-const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
-
-/// Lado maximo que se guarda. Una foto de celular llega con 4000 px o mas y
-/// nadie va a ver un asador a ese tamaño ni en pantalla completa. Guardarla
-/// tal cual solo hace lenta la pagina y cara la factura de almacenamiento.
-const MAX_EDGE = 2000;
-
-/// Se normaliza todo a WebP: pesa alrededor de un tercio menos que JPEG con la
-/// misma calidad visible y lo entienden todos los navegadores actuales. Ademas
-/// deja un solo formato en la tienda en vez de una mezcla de PNG y JPEG.
-async function prepareUpload(file: File) {
-  const sharp = (await import('sharp')).default;
-  const original = Buffer.from(await file.arrayBuffer());
-
-  const pipeline = sharp(original)
-    // withoutEnlargement: una imagen que ya es chica no se estira, porque
-    // agrandar no agrega detalle, solo peso.
-    .resize({ width: MAX_EDGE, height: MAX_EDGE, fit: 'inside', withoutEnlargement: true })
-    .webp({ quality: 82 });
-
-  const buffer = await pipeline.toBuffer();
-  const meta = await sharp(buffer).metadata();
-  return { buffer, width: meta.width ?? null, height: meta.height ?? null };
-}
-
 export async function uploadImage(
   productId: string,
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
   const file = formData.get('file');
-  if (!(file instanceof File) || file.size === 0) {
-    return { ok: false, message: 'Elige un archivo de imagen.' };
-  }
-  if (!ALLOWED_TYPES.includes(file.type)) {
-    return { ok: false, message: 'Solo se aceptan imágenes PNG, JPG o WebP.' };
-  }
-  if (file.size > MAX_IMAGE_BYTES) {
-    return { ok: false, message: 'La imagen no debe pesar más de 12 MB.' };
-  }
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return {
-      ok: false,
-      message: 'Falta configurar el almacenamiento de imágenes (BLOB_READ_WRITE_TOKEN).',
-    };
-  }
+  const problema = validateImage(file);
+  if (problema) return { ok: false, message: problema };
 
   const product = await prisma.product.findUnique({
     where: { id: productId },
@@ -270,22 +280,18 @@ export async function uploadImage(
 
   let prepared;
   try {
-    prepared = await prepareUpload(file);
+    prepared = await prepareImage(file as File);
   } catch {
     return { ok: false, message: 'No se pudo leer la imagen. ¿Está dañada?' };
   }
 
-  const stored = await put(`productos/${product.sku}-${Date.now()}.webp`, prepared.buffer, {
-    access: 'public',
-    contentType: 'image/webp',
-    addRandomSuffix: false,
-  });
+  const stored = await storeImage(`productos/${product.sku}-${Date.now()}.webp`, prepared.buffer);
 
   await prisma.productImage.create({
     data: {
       productId,
       url: stored.url,
-      blobPath: stored.pathname,
+      blobPath: stored.blobPath,
       alt: product.name,
       position: product._count.images,
       isPrimary: product._count.images === 0,
@@ -296,13 +302,11 @@ export async function uploadImage(
 
   revalidatePath(`/productos/${productId}`);
 
-  const ahorro = Math.round((1 - prepared.buffer.length / file.size) * 100);
+  const ahorro = savedPercent((file as File).size, prepared.buffer.length);
   return {
     ok: true,
     message:
-      ahorro > 5
-        ? `Imagen agregada y optimizada (${ahorro}% más ligera).`
-        : 'Imagen agregada.',
+      ahorro > 5 ? `Imagen agregada y optimizada (${ahorro}% más ligera).` : 'Imagen agregada.',
   };
 }
 
@@ -311,11 +315,7 @@ export async function deleteImage(formData: FormData) {
   const image = await prisma.productImage.findUnique({ where: { id: imageId } });
   if (!image) return;
 
-  // Se borra el archivo real solo si vive en Blob. Las rutas locales del
-  // importador se dejan en disco: son la copia de respaldo del Excel.
-  if (image.blobPath && image.url.startsWith('https://') && process.env.BLOB_READ_WRITE_TOKEN) {
-    await del(image.url).catch(() => undefined);
-  }
+  if (image.blobPath) await removeStoredImage(image.url);
   await prisma.productImage.delete({ where: { id: imageId } });
 
   // Si se borro la principal, asciende la siguiente para que el producto
@@ -350,24 +350,4 @@ export async function setPrimaryImage(formData: FormData) {
 
   revalidatePath(`/productos/${image.productId}`);
   revalidatePath('/productos');
-}
-
-/// Ir al siguiente pendiente sin volver a la lista. Es lo que convierte la
-/// limpieza de 331 productos en algo que se puede hacer de corrido.
-export async function goToNextPending(currentName: string) {
-  const next = await prisma.product.findFirst({
-    where: { needsReview: true, name: { gt: currentName } },
-    orderBy: { name: 'asc' },
-    select: { id: true },
-  });
-  const fallback = next
-    ? null
-    : await prisma.product.findFirst({
-        where: { needsReview: true },
-        orderBy: { name: 'asc' },
-        select: { id: true },
-      });
-
-  const target = next ?? fallback;
-  redirect(target ? `/productos/${target.id}` : '/productos?filtro=revision');
 }
