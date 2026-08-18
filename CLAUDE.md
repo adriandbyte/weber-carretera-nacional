@@ -120,8 +120,9 @@ Reglas de las skills que ya están aplicadas y conviene no deshacer:
 - Navegación interna con `next/link`, no `<a href>`: sin él no hay precarga.
 - `robots.ts` y `sitemap.ts` salen de la base y solo listan lo publicado.
 - El panel declara `robots: { index: false }`. Nunca debe indexarse.
-- `turbo.json`: `lint` no depende de nada, `typecheck` y `test` dependen de
-  `^generate` (necesitan el cliente de Prisma).
+- `turbo.json`: `lint` no depende de nada. `typecheck` y `test` dependen de
+  `^generate` **y de `generate`**: necesitan el cliente de Prisma, y con solo el
+  circunflejo `@weber/db` no esperaba a su propia generación.
 
 ## Pendiente conocido
 
