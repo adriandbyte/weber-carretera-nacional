@@ -116,8 +116,14 @@ export function findPending(product: ProductSnapshot): PendingItem[] {
       key: 'imagen',
       missing: 'una imagen',
       title: 'No tiene ninguna imagen',
-      action: 'Sube al menos una foto. No hace falta prepararla, el panel la optimiza sola.',
-      blocking: true,
+      action:
+        'Sube al menos una foto cuando la tengas. No hace falta prepararla, el ' +
+        'panel la optimiza sola. Mientras tanto la tienda muestra un recuadro ' +
+        'en su lugar.',
+      // No impide publicar. Las fotos se suben al almacenamiento remoto ya con
+      // la tienda en linea, asi que exigirlas antes dejaria el catalogo entero
+      // detenido por un trabajo que toca hacer despues.
+      blocking: false,
     });
   }
 

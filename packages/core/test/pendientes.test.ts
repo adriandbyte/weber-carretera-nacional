@@ -69,7 +69,21 @@ const bloqueantes = incompleto.filter((i) => i.blocking).map((i) => i.key).sort(
 check(
   'los bloqueantes son los campos con asterisco en el formulario',
   bloqueantes.join(','),
-  'categoria,descripcion-corta,imagen,tipo',
+  'categoria,descripcion-corta,tipo',
+);
+
+// La foto se sube al almacenamiento remoto con la tienda ya en linea, asi que
+// no puede detener la publicacion: se sigue listando como pendiente, pero la
+// tienda muestra un recuadro en su lugar.
+check(
+  'la imagen no impide publicar',
+  incompleto.find((i) => i.key === 'imagen')?.blocking,
+  false,
+);
+check(
+  'la imagen se sigue listando como pendiente',
+  incompleto.some((i) => i.key === 'imagen'),
+  true,
 );
 
 // Un nombre sin redactar tambien impide publicar: es lo primero que ve Google.
@@ -91,7 +105,7 @@ check(
 check(
   'los textos enumerables se leen corridos',
   `Para publicar falta ${incompleto.filter((i) => i.blocking).map((i) => i.missing).join(', ')}.`,
-  'Para publicar falta la descripción corta, una imagen, una categoría del menú, el tipo de producto.',
+  'Para publicar falta la descripción corta, una categoría del menú, el tipo de producto.',
 );
 
 console.log(fallos === 0 ? '\nTodas las pruebas pasan' : `\n${fallos} fallas`);
