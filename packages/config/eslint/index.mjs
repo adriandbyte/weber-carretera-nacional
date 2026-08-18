@@ -18,7 +18,9 @@ const compat = new FlatCompat();
 export function nextConfig() {
   return [
     {
-      ignores: ['.next/**', 'node_modules/**', 'next-env.d.ts'],
+      // src/generated es el cliente de Prisma: codigo que nadie escribe a mano
+      // y que se rehace en cada generate. Revisarlo solo produce ruido.
+      ignores: ['.next/**', 'node_modules/**', 'next-env.d.ts', 'src/generated/**'],
     },
     ...compat.extends('next/core-web-vitals', 'next/typescript'),
     {

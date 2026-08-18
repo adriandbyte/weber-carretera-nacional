@@ -23,10 +23,8 @@
 
 import path from 'node:path';
 import ExcelJS from 'exceljs';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { prisma, Prisma } from '../src/index.js';
 import { fold } from './lib/normalize.js';
-
-const prisma = new PrismaClient();
 
 const HEADERS = {
   sku: ['sku', 'codigo', 'clave', 'articulo', 'modelo', 'no. parte', 'no parte', 'numero de parte'],

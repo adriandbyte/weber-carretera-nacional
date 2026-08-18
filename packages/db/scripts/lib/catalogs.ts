@@ -6,7 +6,7 @@
 // del nombre y la posicion.
 // ---------------------------------------------------------------------------
 
-import type { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '../../src/generated/prisma/client';
 import { CATEGORIES, COLORS, FORMATS, FUEL_TYPES, PRODUCT_TYPES, SERIES, SIZES } from './normalize.js';
 
 export interface CatalogIds {

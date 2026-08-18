@@ -9,6 +9,11 @@ out
 !.env.example
 .DS_Store
 coverage
+
+# Cliente de Prisma. Desde la version 7 se escribe como fuente TypeScript
+# dentro del paquete en vez de dentro de node_modules, pero sigue siendo
+# generado: se rehace con `pnpm db:generate` a partir del esquema.
+/packages/db/src/generated/
 # Archivos fuente del cliente. Se quedan fuera del repositorio: son binarios
 # de 20+ MB que se reemplazan cada vez que cambia el inventario, y cada version
 # quedaria en el historial para siempre. Ver README para donde colocarlos.

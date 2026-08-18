@@ -11,14 +11,18 @@
 // bloquea: Product ya tiene precio y stock, y los prospectos ya viven aparte.
 // ---------------------------------------------------------------------------
 
+// Prisma 7 retira "prisma-client-js" y exige decir donde escribir el cliente.
+// Antes aterrizaba dentro de node_modules, invisible para todos; ahora es una
+// carpeta del paquete, ignorada por git y declarable como salida de turbo.
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
+// Las URLs ya no viven aqui: Prisma 7 las lee de prisma.config.ts para el CLI
+// y del adaptador para el cliente. El esquema solo declara el motor.
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
 }
 
 // ===========================================================================
