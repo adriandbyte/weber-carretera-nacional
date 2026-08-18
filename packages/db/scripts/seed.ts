@@ -11,10 +11,8 @@
 // completar; se dejan visibles a proposito para que no se olviden.
 // ---------------------------------------------------------------------------
 
-import { PrismaClient, type Prisma } from '@prisma/client';
+import { prisma, type Prisma } from '../src/index.js';
 import { seedCatalogs } from './lib/catalogs.js';
-
-const prisma = new PrismaClient();
 
 /// Las pestañas del menu, en el orden exacto del Excel de propuesta.
 /// Las que apuntan a una categoria se resuelven por slug; las demas son

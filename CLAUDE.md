@@ -70,10 +70,17 @@ tienen que pasar, incluso si lo que falla venía roto de antes.
 
 - **Un solo `.env` en la raíz.** Cada app y `packages/db` lo alcanzan por symlink.
   No crees `.env` por paquete.
-- **`packages/db/prisma.config.ts` desactiva la carga automática de `.env`** por
-  parte del CLI de Prisma. Por eso empieza con `import 'dotenv/config'`. Si lo
-  quitas, `prisma migrate` se queda sin `DATABASE_URL` y el error no menciona el
-  `.env`.
+- **Nada carga el `.env` solo.** Prisma 7 dejó de hacerlo, ni en el CLI ni en el
+  cliente. Por eso `packages/db/prisma.config.ts` y `packages/db/src/index.ts`
+  empiezan con `import 'dotenv/config'`. Si lo quitas, `prisma migrate` y los
+  scripts se quedan sin `DATABASE_URL`. Las apps de Next no se enteran porque el
+  framework lo carga por su cuenta, así que el fallo solo aparece fuera de Next.
+- **Las URLs no están en el esquema.** Desde Prisma 7 el bloque `datasource`
+  solo declara el motor: la del CLI vive en `prisma.config.ts` y la del cliente
+  la pasa el adaptador `PrismaPg` en `packages/db/src/index.ts`.
+- **El cliente de Prisma se genera en `packages/db/src/generated/`**, no dentro
+  de `node_modules`. Está en `.gitignore`: si typecheck falla con cientos de
+  errores de tipos que no existen, lo que falta es `pnpm db:generate`.
 - **No hay pruebas.** Se borraron para rehacerlas desde cero con lo que de
   verdad haga falta comprobar. El CI solo corre el linter. No añadas pruebas
   por tu cuenta: se van a definir aparte.
@@ -121,7 +128,8 @@ Reglas de las skills que ya están aplicadas y conviene no deshacer:
 - El panel declara `robots: { index: false }`. Nunca debe indexarse.
 - `turbo.json`: `lint` no depende de nada. `typecheck` depende de `^generate`
   **y de `generate`**: necesita el cliente de Prisma, y con solo el circunflejo
-  `@weber/db` no esperaba a su propia generación.
+  `@weber/db` no esperaba a su propia generación. `generate` ya se cachea: desde
+  Prisma 7 su salida es una carpeta declarable, no `node_modules`.
 
 ## Pendiente conocido
 

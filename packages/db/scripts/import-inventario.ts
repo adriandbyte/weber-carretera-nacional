@@ -16,7 +16,7 @@
 
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../src/index.js';
 import { readInventory } from './lib/excel.js';
 import { normalizeRow } from './lib/normalize.js';
 import { seedCatalogs } from './lib/catalogs.js';
@@ -32,8 +32,6 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(here, '../../..');
 const DEFAULT_FILE = path.join(REPO_ROOT, 'data/fuentes/Base de Datos Inventario.xlsx');
 const LOCAL_IMAGE_ROOT = path.join(REPO_ROOT, 'data/imagenes');
-
-const prisma = new PrismaClient();
 
 async function main() {
   const file = process.argv[2] ?? DEFAULT_FILE;

@@ -4,10 +4,12 @@
   "globalEnv": ["NODE_ENV"],
   "tasks": {
     "generate": {
-      // Prisma escribe el cliente dentro de node_modules, fuera de cualquier
-      // carpeta que turbo pueda declarar como salida. Cachear la tarea dejaria
-      // el cliente viejo en su sitio.
-      "cache": false
+      // Desde Prisma 7 el cliente se escribe en una carpeta del paquete y no
+      // dentro de node_modules, asi que ya se puede declarar como salida y
+      // cachear. Antes no: la tarea corria entera en cada arranque porque su
+      // resultado quedaba donde turbo no lo veia.
+      "inputs": ["prisma/schema.prisma", "prisma.config.ts"],
+      "outputs": ["src/generated/**"]
     },
     "build": {
       "dependsOn": ["^build", "^generate"],
