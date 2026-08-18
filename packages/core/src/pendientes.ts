@@ -69,6 +69,24 @@ export function looksLikeWarehouseName(name: string): boolean {
   return WAREHOUSE_CODES.some((code) => words.includes(code));
 }
 
+/// El motivo por el que un producto no se puede publicar, o null si si se puede.
+///
+/// La regla no se escribe aparte: sale de la misma lista de pendientes que ve
+/// la persona en pantalla. Cuando estaban separadas, la pantalla marcaba como
+/// obligatorias cosas que el guardado no comprobaba, y al reves.
+///
+/// Vive aqui y no dentro de la Server Action para poder comprobarla sin base de
+/// datos: lo unico que necesita es la foto del producto, no consultarlo.
+export function motivoParaNoPublicar(product: ProductSnapshot): string | null {
+  const bloqueantes = findPending(product).filter((item) => item.blocking);
+  if (bloqueantes.length === 0) return null;
+
+  return (
+    `Para publicar falta ${bloqueantes.map((b) => b.missing).join(', ')}. ` +
+    'Guárdalo como borrador mientras tanto.'
+  );
+}
+
 export function findPending(product: ProductSnapshot): PendingItem[] {
   const pending: PendingItem[] = [];
 

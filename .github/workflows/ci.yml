@@ -1,0 +1,37 @@
+# ---------------------------------------------------------------------------
+# Verificacion automatica de cada cambio.
+#
+# Por ahora solo el linter. Las pruebas se van a rehacer desde cero con lo que
+# de verdad haga falta comprobar, y hasta entonces no hay ninguna: un paso de
+# pruebas vacio en verde dice que todo esta bien cuando no se ejecuto nada.
+# ---------------------------------------------------------------------------
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Un push nuevo sobre la misma rama cancela la corrida anterior: lo que importa
+# es el estado actual, no la cola de estados intermedios.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint

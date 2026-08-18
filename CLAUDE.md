@@ -26,7 +26,6 @@ categorías, carrito y login real.
 pnpm dev          # las dos apps (web :3000, admin :3001)
 pnpm lint         # eslint en las dos apps
 pnpm typecheck    # tsc --noEmit en todo
-pnpm test         # pruebas (tocan la base de datos real, ver abajo)
 pnpm db:migrate   # crear/aplicar migración
 pnpm db:studio    # explorar la base
 ```
@@ -34,8 +33,8 @@ pnpm db:studio    # explorar la base
 **No levantes los servidores tú.** Si hace falta ver algo en el navegador, dale
 al usuario el comando (`pnpm dev`) y espera a que lo arranque.
 
-Antes de dar por terminado un cambio: `pnpm lint && pnpm typecheck && pnpm test`.
-Los tres tienen que pasar, incluso si lo que falla venía roto de antes.
+Antes de dar por terminado un cambio: `pnpm lint && pnpm typecheck`. Los dos
+tienen que pasar, incluso si lo que falla venía roto de antes.
 
 ## Reglas del proyecto
 
@@ -56,8 +55,8 @@ Los tres tienen que pasar, incluso si lo que falla venía roto de antes.
 - **Un campo que quien captura no necesita decidir no va en la pantalla.** El
   slug, el meta título, la marca y el stock se resuelven en el servidor.
 - **El slug se congela al publicar.** Cambiarlo después rompe enlaces vivos e
-  indexación. La regla vive en `apps/admin/src/app/productos/[id]/actions.ts` y
-  tiene pruebas.
+  indexación. La regla vive en `apps/admin/src/app/productos/[id]/actions.ts`
+  (`deriveSlug`) y hoy no la cubre nada.
 - **Cada ruta del panel lleva su `loading.tsx`** con un esqueleto que calca su
   layout (piezas comunes en `apps/admin/src/components/skeletons.tsx`). Si creas
   una pantalla y no le pones el suyo, hereda el del segmento de arriba y el
@@ -73,8 +72,8 @@ Los tres tienen que pasar, incluso si lo que falla venía roto de antes.
   No crees `.env` por paquete.
 - **Nada carga el `.env` solo.** Prisma 7 dejó de hacerlo, ni en el CLI ni en el
   cliente. Por eso `packages/db/prisma.config.ts` y `packages/db/src/index.ts`
-  empiezan con `import 'dotenv/config'`. Si lo quitas, `prisma migrate` y las
-  pruebas se quedan sin `DATABASE_URL`. Las apps de Next no se enteran porque el
+  empiezan con `import 'dotenv/config'`. Si lo quitas, `prisma migrate` y los
+  scripts se quedan sin `DATABASE_URL`. Las apps de Next no se enteran porque el
   framework lo carga por su cuenta, así que el fallo solo aparece fuera de Next.
 - **Las URLs no están en el esquema.** Desde Prisma 7 el bloque `datasource`
   solo declara el motor: la del CLI vive en `prisma.config.ts` y la del cliente
@@ -82,9 +81,9 @@ Los tres tienen que pasar, incluso si lo que falla venía roto de antes.
 - **El cliente de Prisma se genera en `packages/db/src/generated/`**, no dentro
   de `node_modules`. Está en `.gitignore`: si typecheck falla con cientos de
   errores de tipos que no existen, lo que falta es `pnpm db:generate`.
-- **Las pruebas consultan la base real**, así que `test` corre con `cache: false`
-  en `turbo.json`. Si las cacheas, un acierto de caché es una prueba que no se
-  ejecutó.
+- **No hay pruebas.** Se borraron para rehacerlas desde cero con lo que de
+  verdad haga falta comprobar. El CI solo corre el linter. No añadas pruebas
+  por tu cuenta: se van a definir aparte.
 - **Las imágenes tienen dos almacenamientos** (disco local o Vercel Blob) según
   haya `BLOB_READ_WRITE_TOKEN`. Las locales solo existen en la máquina que
   importó: en un despliegue esas URLs no resuelven.
@@ -127,8 +126,9 @@ Reglas de las skills que ya están aplicadas y conviene no deshacer:
 - Navegación interna con `next/link`, no `<a href>`: sin él no hay precarga.
 - `robots.ts` y `sitemap.ts` salen de la base y solo listan lo publicado.
 - El panel declara `robots: { index: false }`. Nunca debe indexarse.
-- `turbo.json`: `lint` no depende de nada, `typecheck` y `test` dependen de
-  `^generate` (necesitan el cliente de Prisma). `generate` ya se cachea: desde
+- `turbo.json`: `lint` no depende de nada. `typecheck` depende de `^generate`
+  **y de `generate`**: necesita el cliente de Prisma, y con solo el circunflejo
+  `@weber/db` no esperaba a su propia generación. `generate` ya se cachea: desde
   Prisma 7 su salida es una carpeta declarable, no `node_modules`.
 
 ## Pendiente conocido
