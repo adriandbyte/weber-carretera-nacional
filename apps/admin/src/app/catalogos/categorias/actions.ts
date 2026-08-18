@@ -14,7 +14,13 @@
 
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@weber/db';
-import { categorySchema, nextCategorySlug, slugify } from '@weber/core';
+import {
+  USO_CATEGORIA,
+  categorySchema,
+  motivoParaNoBorrar,
+  nextCategorySlug,
+  slugify,
+} from '@weber/core';
 import {
   prepareImage,
   removeStoredImage,
@@ -147,17 +153,8 @@ export async function deleteCategory(
   });
   if (!category) return { ok: false, message: 'Esa categoría ya no existe.' };
 
-  // La pantalla ya esconde el boton cuando hay productos dentro, pero un
-  // formulario se puede reenviar a mano y la comprobacion cuenta de este lado.
-  if (category._count.products > 0) {
-    return {
-      ok: false,
-      message:
-        `No se puede eliminar: ${category._count.products} ` +
-        `${category._count.products === 1 ? 'producto está' : 'productos están'} en esta categoría. ` +
-        'Edítala y desmarca "Visible" para que deje de aparecer en la tienda.',
-    };
-  }
+  const bloqueo = motivoParaNoBorrar(category._count.products, USO_CATEGORIA);
+  if (bloqueo) return { ok: false, message: bloqueo };
 
   await removeStoredImage(category.imageUrl);
   await prisma.category.delete({ where: { id } });

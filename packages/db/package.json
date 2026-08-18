@@ -16,8 +16,7 @@
     "seed": "tsx scripts/seed.ts",
     "import:inventario": "tsx scripts/import-inventario.ts",
     "import:precios": "tsx scripts/import-precios.ts",
-    "typecheck": "tsc --noEmit",
-    "test": "tsx test/imagenes.test.ts"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0"

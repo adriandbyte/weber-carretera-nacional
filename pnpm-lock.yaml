@@ -99,9 +99,6 @@ importers:
       tailwindcss:
         specifier: ^4.0.0
         version: 4.3.3
-      tsx:
-        specifier: ^4.19.2
-        version: 4.23.8
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
@@ -182,9 +179,6 @@ importers:
       '@weber/config':
         specifier: workspace:*
         version: link:../config
-      tsx:
-        specifier: ^4.19.2
-        version: 4.23.8
       typescript:
         specifier: ^5.7.2
         version: 5.9.3

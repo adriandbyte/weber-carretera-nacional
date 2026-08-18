@@ -4,3 +4,4 @@ export * from './format';
 export * from './schemas';
 export * from './pendientes';
 export * from './compatibilidad';
+export * from './borrado';
