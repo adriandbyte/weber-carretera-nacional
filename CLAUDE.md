@@ -75,9 +75,15 @@ Los tres tienen que pasar, incluso si lo que falla venía roto de antes.
   parte del CLI de Prisma. Por eso empieza con `import 'dotenv/config'`. Si lo
   quitas, `prisma migrate` se queda sin `DATABASE_URL` y el error no menciona el
   `.env`.
-- **Las pruebas consultan la base real**, así que `test` corre con `cache: false`
-  en `turbo.json`. Si las cacheas, un acierto de caché es una prueba que no se
-  ejecutó.
+- **Ninguna prueba toca la base.** Son lógica con datos inventados, corren en CI
+  sin Postgres y no dependen del catálogo importado. Si te descubres necesitando
+  la base para probar algo, la señal es que la decisión está enredada con la
+  consulta: sácala a una función pura (como `motivoParaNoBorrar`) o inyecta la
+  búsqueda (como `elegirSiguientePendiente`).
+- **Lo que sí mira los datos reales es `pnpm db:auditar`**, y no es una prueba:
+  no corre en CI y no bloquea nada. Ahí viven las comprobaciones de URLs
+  duplicadas, slugs que se moverían y SKU con mala forma. Córrelo después de
+  importar un Excel o de un renombrado masivo.
 - **Las imágenes tienen dos almacenamientos** (disco local o Vercel Blob) según
   haya `BLOB_READ_WRITE_TOKEN`. Las locales solo existen en la máquina que
   importó: en un despliegue esas URLs no resuelven.

@@ -8,7 +8,6 @@
 // cortaba a 80 caracteres y le pegaba el SKU a toda direccion, el panel cortaba
 // a 120 y solo usaba el SKU al haber choque. Resultado: abrir una ficha y
 // guardarla, sin tocar el nombre, le cambiaba la URL al producto.
-import { prisma } from '@weber/db';
 import { slugify as slugCore } from '@weber/core';
 import { slugify as slugImportador } from '../../../packages/db/scripts/lib/normalize.js';
 import { check } from './harness';
@@ -34,17 +33,6 @@ export async function correr() {
       `misma URL para ${JSON.stringify(caso.slice(0, 38))}`,
       slugImportador(caso),
       slugCore(caso),
-    );
-  }
-
-  // El catalogo real es el mejor banco de pruebas que hay: son los nombres que
-  // de verdad salieron del Excel, con sus simbolos y sus largos.
-  const nombres = await prisma.product.findMany({ select: { name: true } });
-  const distintos = nombres.filter((p) => slugImportador(p.name) !== slugCore(p.name));
-  check('las dos coinciden en los 331 nombres del catalogo', distintos.length, 0);
-  for (const d of distintos.slice(0, 3)) {
-    console.log(
-      `        "${d.name}"\n          importador: ${slugImportador(d.name)}\n          core:       ${slugCore(d.name)}`,
     );
   }
 

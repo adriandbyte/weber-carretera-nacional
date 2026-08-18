@@ -5,10 +5,14 @@
 # mano antes de abrir un PR. Para un cambio de version mayor (Prisma, Zod) eso
 # es demasiado fino: un fallo sutil en una consulta no se nota leyendo el diff.
 #
-# Se parte en dos trabajos a proposito. `verificar` no toca la base y corre
-# siempre; `pruebas` necesita datos reales y solo corre si el repositorio tiene
-# configurado el secreto DATABASE_URL. Ver la nota al pie sobre por que las
-# pruebas no pueden levantar su propio Postgres todavia.
+# Un solo trabajo, y sin base de datos. Las pruebas son logica con datos
+# inventados: no hay Postgres que levantar ni secretos que configurar, y su
+# resultado depende del codigo y de nada mas.
+#
+# Lo que si mira los datos reales es `pnpm db:auditar`, que se corre a mano
+# contra la base. No esta aqui a proposito: fallaria al importar un Excel raro
+# en vez de al romper el codigo, y un rojo asi no dice nada del cambio que se
+# esta revisando.
 # ---------------------------------------------------------------------------
 name: CI
 
@@ -25,12 +29,12 @@ concurrency:
 
 jobs:
   verificar:
-    name: Lint y tipos
+    name: Lint, tipos y pruebas
     runs-on: ubuntu-latest
     env:
-      # `prisma generate` resuelve env("DATABASE_URL") del esquema aunque no se
-      # conecte a nada. Sin un valor aqui falla antes de generar el cliente, y
-      # sin cliente generado `typecheck` produce cientos de errores enganosos.
+      # Ninguna prueba se conecta, pero `prisma generate` resuelve la URL de
+      # prisma.config.ts antes de escribir el cliente, y sin cliente generado
+      # `typecheck` produce cientos de errores enganosos.
       DATABASE_URL: postgresql://nadie@localhost:5432/vacio
       DIRECT_URL: postgresql://nadie@localhost:5432/vacio
     steps:
@@ -49,44 +53,4 @@ jobs:
 
       - run: pnpm typecheck
 
-  pruebas:
-    name: Pruebas
-    runs-on: ubuntu-latest
-    # Las pruebas comprueban el catalogo real (que los 331 slugs coincidan, que
-    # el uso de cada catalogo cuadre). Ese contenido llego de un Excel que no
-    # esta en el repositorio, asi que un Postgres recien levantado con el seed
-    # no lo reproduce: el seed siembra menu y catalogos, no productos.
-    #
-    # Mientras siga asi, las pruebas solo corren donde haya una base con datos.
-    # Si el secreto no existe, el trabajo se salta en vez de fallar en rojo por
-    # algo que no es culpa del cambio.
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-
-      - name: Comprobar si hay base configurada
-        id: base
-        run: echo "hay=${{ secrets.DATABASE_URL != '' }}" >> "$GITHUB_OUTPUT"
-
-      - name: Pruebas contra la base
-        if: steps.base.outputs.hay == 'true'
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          # Sin pooler el directo es el mismo. Se declara aparte porque el
-          # esquema lo exige y Prisma no lo deduce.
-          DIRECT_URL: ${{ secrets.DIRECT_URL || secrets.DATABASE_URL }}
-        run: pnpm test
-
-      - name: Avisar que no hay base
-        if: steps.base.outputs.hay != 'true'
-        run: |
-          echo "::warning::Las pruebas no se ejecutaron: falta el secreto DATABASE_URL."
-          echo "Configuralo en Settings > Secrets and variables > Actions."
+      - run: pnpm test

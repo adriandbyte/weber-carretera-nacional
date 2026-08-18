@@ -45,13 +45,14 @@
       "dependsOn": ["^generate", "generate"]
     },
     "test": {
-      "dependsOn": ["^generate", "generate"],
-      // Las pruebas consultan la base de datos real (que no haya URLs
-      // duplicadas, que el uso de cada catalogo cuadre). Su resultado depende
-      // de datos que turbo no puede ver, asi que un acierto de cache seria una
-      // prueba que en realidad no se ejecuto.
-      "cache": false,
-      "env": ["DATABASE_URL", "DIRECT_URL"]
+      // Ya se cachean: las pruebas son logica con datos inventados y su
+      // resultado solo depende del codigo, que es justo lo que turbo si sabe
+      // mirar. Cuando consultaban la base habia que desactivar la cache, porque
+      // un acierto habria sido una prueba que en realidad no se ejecuto.
+      //
+      // Lo que necesita la base es `pnpm db:auditar`, que no es una prueba y no
+      // pasa por aqui.
+      "dependsOn": ["^generate", "generate"]
     }
   }
 }

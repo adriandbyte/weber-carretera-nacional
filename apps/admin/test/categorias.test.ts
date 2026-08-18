@@ -1,56 +1,44 @@
-// Prueba de las escrituras de categorias.
+// Reglas de las categorias que no dependen de la base.
 //
-// Importan dos cosas que no se ven hasta que ya es tarde: que no se pueda
-// vaciar una seccion de la tienda borrando su categoria, y que el slug no se
-// mueva al editar. El slug es la direccion por la que la tienda filtra, y
-// cambiarlo rompe enlaces sin avisar a nadie.
-import { prisma } from '@weber/db';
+// Importa que el slug no se mueva al editar: es la direccion por la que la
+// tienda filtra, y cambiarlo rompe enlaces sin avisar a nadie.
+//
+// No se llama a updateCategory: esa accion usa revalidatePath, que solo existe
+// dentro de Next y revienta fuera del servidor. La decision del slug vive
+// aparte justo para poder comprobarla aqui.
+//
+// La otra mitad de lo que habia (que una categoria con productos no se borre)
+// esta en borrado.test.ts, ya sin base: era una regla sobre un numero.
 import { categorySchema, nextCategorySlug } from '@weber/core';
 import { check } from './harness';
 
+/// Una categoria inventada, con la forma que devuelve la consulta.
+const CATEGORIA = { name: 'Asadores de Carbón', slug: 'asadores-de-carbon' };
+
 export async function correr() {
-  const conProductos = await prisma.category.findFirst({
-    where: { products: { some: {} } },
-    select: { id: true, name: true, slug: true, _count: { select: { products: true } } },
-  });
-  check('hay una categoria con productos que probar', conProductos !== null, true);
-  if (!conProductos) return;
-
-  const { deleteCategory } = await import('../src/app/catalogos/categorias/actions');
-
-  // --- No se vacia una seccion por accidente ------------------------------
-  const antes = await prisma.category.count();
-  const borrado = new FormData();
-  borrado.set('id', conProductos.id);
-  const resultado = await deleteCategory({ ok: false }, borrado);
-
-  check('una categoria con productos no se borra', await prisma.category.count(), antes);
-  check('el borrado rechazado se reporta', resultado.ok, false);
-  check(
-    'el mensaje dice cuantos productos hay dentro',
-    resultado.message?.includes(String(conProductos._count.products)),
-    true,
-  );
-
-  // --- El slug no se mueve al editar --------------------------------------
-  //
-  // No se llama a updateCategory: esa accion usa revalidatePath, que solo
-  // existe dentro de Next y revienta fuera del servidor. La decision del slug
-  // vive aparte justo para poder comprobarla aqui.
   check(
     'guardar sin tocar el nombre deja el slug quieto',
-    nextCategorySlug(conProductos.name, conProductos),
-    conProductos.slug,
+    nextCategorySlug(CATEGORIA.name, CATEGORIA),
+    CATEGORIA.slug,
   );
   check(
     'los espacios de sobra no cuentan como cambio de nombre',
-    nextCategorySlug(`  ${conProductos.name}  `, conProductos),
-    conProductos.slug,
+    nextCategorySlug(`  ${CATEGORIA.name}  `, CATEGORIA),
+    CATEGORIA.slug,
   );
   check(
     'cambiar el nombre si mueve el slug',
-    nextCategorySlug('Asadores de Gas', conProductos),
+    nextCategorySlug('Asadores de Gas', CATEGORIA),
     'asadores-de-gas',
+  );
+
+  // Un slug heredado que no se parece a su nombre tampoco se toca mientras el
+  // nombre no cambie: es el caso de las categorias que vienen del Excel.
+  const heredada = { name: 'Gas', slug: 'gas-lp-y-natural' };
+  check(
+    'un slug heredado sobrevive si el nombre no cambia',
+    nextCategorySlug('Gas', heredada),
+    'gas-lp-y-natural',
   );
 
   // --- Los limites de los textos para buscadores --------------------------

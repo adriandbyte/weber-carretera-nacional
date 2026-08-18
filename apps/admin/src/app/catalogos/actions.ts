@@ -11,7 +11,7 @@
 // ---------------------------------------------------------------------------
 
 import { revalidatePath } from 'next/cache';
-import { catalogSchema, slugify } from '@weber/core';
+import { USO_CATALOGO, catalogSchema, motivoParaNoBorrar, slugify } from '@weber/core';
 import { CATALOGS } from '@/lib/catalogos';
 
 export interface CatalogState {
@@ -132,19 +132,11 @@ export async function deleteCatalogItem(
   if (!target) return { ok: false, message: 'Ese valor ya no existe.' };
 
   // Sin esta guarda, borrar "Gas" dejaria 33 asadores sin combustible.
-  // La pantalla ya esconde el boton cuando hay uso, pero un formulario se
-  // puede reenviar a mano y la comprobacion tiene que estar de este lado.
   //
   // Antes se devolvia sin mas y la pantalla se quedaba igual, sin explicar por
   // que: quien lo intentaba concluia que el panel estaba roto.
-  if (target.usage > 0) {
-    return {
-      ok: false,
-      message:
-        `No se puede eliminar: ${target.usage} ${target.usage === 1 ? 'producto lo usa' : 'productos lo usan'}. ` +
-        'Edítalo y desmarca "Visible" para que deje de aparecer en los menús.',
-    };
-  }
+  const bloqueo = motivoParaNoBorrar(target.usage, USO_CATALOGO);
+  if (bloqueo) return { ok: false, message: bloqueo };
 
   await catalog.remove(id);
   revalidatePath(`/catalogos/${key}`);

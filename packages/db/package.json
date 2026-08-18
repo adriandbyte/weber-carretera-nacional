@@ -14,6 +14,7 @@
     "migrate": "prisma migrate dev",
     "studio": "prisma studio",
     "seed": "tsx scripts/seed.ts",
+    "auditar": "tsx scripts/auditar.ts",
     "import:inventario": "tsx scripts/import-inventario.ts",
     "import:precios": "tsx scripts/import-precios.ts",
     "typecheck": "tsc --noEmit",
