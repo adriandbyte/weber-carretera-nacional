@@ -18,7 +18,6 @@
     "db:migrate": "pnpm --filter @weber/db migrate",
     "db:studio": "pnpm --filter @weber/db studio",
     "db:seed": "pnpm --filter @weber/db seed",
-    "db:auditar": "pnpm --filter @weber/db auditar",
     "import:inventario": "pnpm --filter @weber/db import:inventario",
     "import:precios": "pnpm --filter @weber/db import:precios"
   },

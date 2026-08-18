@@ -80,10 +80,9 @@ Los tres tienen que pasar, incluso si lo que falla venía roto de antes.
   la base para probar algo, la señal es que la decisión está enredada con la
   consulta: sácala a una función pura (como `motivoParaNoBorrar`) o inyecta la
   búsqueda (como `elegirSiguientePendiente`).
-- **Lo que sí mira los datos reales es `pnpm db:auditar`**, y no es una prueba:
-  no corre en CI y no bloquea nada. Ahí viven las comprobaciones de URLs
-  duplicadas, slugs que se moverían y SKU con mala forma. Córrelo después de
-  importar un Excel o de un renombrado masivo.
+- **No se comprueba la base contra el Excel.** El importador fue para arrancar
+  el proyecto una vez, no es algo que haya que vigilar. Si escribes una prueba
+  que cuenta filas o compara slugs contra el catálogo importado, sobra.
 - **Las imágenes tienen dos almacenamientos** (disco local o Vercel Blob) según
   haya `BLOB_READ_WRITE_TOKEN`. Las locales solo existen en la máquina que
   importó: en un despliegue esas URLs no resuelven.

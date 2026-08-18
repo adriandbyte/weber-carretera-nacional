@@ -15,7 +15,12 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma, Prisma } from '@weber/db';
-import { acceptsCompatibility, findPending, productSchema, slugify } from '@weber/core';
+import {
+  acceptsCompatibility,
+  motivoParaNoPublicar,
+  productSchema,
+  slugify,
+} from '@weber/core';
 import { findNextPendingId } from '@/lib/productos';
 import {
   prepareImage,
@@ -144,21 +149,19 @@ export async function saveProduct(
       Promise.resolve(data.categoryIds.length),
     ]);
 
-    const blocking = findPending({
+    const bloqueo = motivoParaNoPublicar({
       name: data.name,
       shortDescription: data.shortDescription,
       description: data.description,
       imageCount,
       categoryCount,
       hasProductType: data.productTypeId !== null,
-    }).filter((item) => item.blocking);
+    });
 
-    if (blocking.length > 0) {
+    if (bloqueo) {
       return {
         ok: false,
-        message:
-          `Para publicar falta ${blocking.map((b) => b.missing).join(', ')}. ` +
-          'Guárdalo como borrador mientras tanto.',
+        message: bloqueo,
         errors: { status: ['No se puede publicar todavía'] },
       };
     }
