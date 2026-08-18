@@ -11,7 +11,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma } from '@weber/db';
-import { slugify } from '@weber/core';
+import { newProductSchema, slugify } from '@weber/core';
 
 export interface NewProductState {
   ok: boolean;
@@ -23,15 +23,24 @@ export async function createProduct(
   _prev: NewProductState,
   formData: FormData,
 ): Promise<NewProductState> {
-  const sku = String(formData.get('sku') ?? '').trim();
-  const name = String(formData.get('name') ?? '').trim();
+  // Las reglas viven en el esquema, no aqui. La version escrita a mano era una
+  // cadena de ifs donde cada uno pisaba el error del anterior: un nombre como
+  // "!!" es corto y ademas no deja slug, y solo se reportaba lo segundo. Zod
+  // reune todos los problemas de un campo y los devuelve juntos.
+  const parsed = newProductSchema.safeParse({
+    sku: formData.get('sku') ?? '',
+    name: formData.get('name') ?? '',
+  });
 
-  const errors: Record<string, string[]> = {};
-  if (sku.length < 1) errors.sku = ['Escribe el SKU de Weber.'];
-  if (sku.length > 40) errors.sku = ['El SKU no debe pasar de 40 caracteres.'];
-  if (name.length < 3) errors.name = ['El nombre debe tener al menos 3 caracteres.'];
-  if (!slugify(name)) errors.name = ['El nombre debe tener letras o números.'];
-  if (Object.keys(errors).length > 0) return { ok: false, message: 'Revisa los campos.', errors };
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: 'Revisa los campos marcados.',
+      errors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+    };
+  }
+
+  const { sku, name } = parsed.data;
 
   // El SKU es la llave con la que se cruzan las listas de precios. Repetirlo
   // rompe ese cruce, asi que se avisa antes de intentar guardar.
@@ -48,7 +57,10 @@ export async function createProduct(
   }
 
   const base = slugify(name);
-  const slugTaken = await prisma.product.findUnique({ where: { slug: base }, select: { id: true } });
+  const slugTaken = await prisma.product.findUnique({
+    where: { slug: base },
+    select: { id: true },
+  });
 
   const brand = await prisma.brand.findUnique({ where: { slug: 'weber' }, select: { id: true } });
 

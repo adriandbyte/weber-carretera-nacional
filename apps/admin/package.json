@@ -8,7 +8,7 @@
     "start": "next start --port 3001",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsx test/slug.test.ts && tsx test/catalogos.test.ts"
+    "test": "tsx test/index.ts"
   },
   "dependencies": {
     "@vercel/blob": "^0.27.0",

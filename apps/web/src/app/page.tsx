@@ -75,7 +75,7 @@ export default async function HomePage() {
                   className="block rounded-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ember-500"
                 >
                   <div className="relative aspect-square overflow-hidden rounded-card bg-steel-100">
-                    {product.images[0] && (
+                    {product.images[0] ? (
                       <Image
                         src={product.images[0].url}
                         // El alt de la base describe la foto; el nombre del
@@ -92,6 +92,29 @@ export default async function HomePage() {
                         priority={index < 4}
                         className="object-contain transition group-hover:scale-105"
                       />
+                    ) : (
+                      // Un producto puede publicarse antes de tener foto: las
+                      // fotos se suben ya con la tienda en linea. Sin este
+                      // recuadro la tarjeta quedaria con un hueco y se leeria
+                      // como que la pagina fallo al cargar.
+                      <div
+                        aria-hidden
+                        className="flex h-full w-full items-center justify-center"
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={1.25}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="size-8 text-carbon-300"
+                        >
+                          <rect x="3" y="4" width="18" height="16" rx="2" />
+                          <circle cx="8.5" cy="9.5" r="1.5" />
+                          <path d="m21 16-4.5-4.5L7 21" />
+                        </svg>
+                      </div>
                     )}
                   </div>
                   {product.series && (

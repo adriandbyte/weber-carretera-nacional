@@ -31,18 +31,65 @@ export interface CatalogConfig {
   description: string;
   /// Los colores llevan muestra; el resto no.
   hasHex?: boolean;
+  /// Siempre presente: el indice cuenta cuantas opciones tiene cada lista.
   list(): Promise<CatalogRow[]>;
-  create(data: { slug: string; name: string; position: number; hex: string | null }): Promise<void>;
-  update(
+
+  // Las tres escrituras faltan cuando la lista tiene su propia pantalla, que
+  // hoy es el caso de Categorias: no es solo un desplegable, es una pagina de
+  // la tienda con texto, imagen y etiquetas para buscadores, y eso no cabe en
+  // la tabla generica. Su ruta estatica gana sobre /catalogos/[tipo], asi que
+  // estas funciones nunca se llamarian y dejarlas escritas seria codigo muerto
+  // que ademas sabe menos que la pantalla de verdad.
+  create?(data: {
+    slug: string;
+    name: string;
+    position: number;
+    hex: string | null;
+  }): Promise<void>;
+  update?(
     id: string,
     data: { slug: string; name: string; position: number; active: boolean; hex: string | null },
   ): Promise<void>;
-  remove(id: string): Promise<void>;
+  remove?(id: string): Promise<void>;
 }
 
-/// Cuenta de uso para los catalogos que cuelgan de una columna de Product.
-const countByColumn = (column: 'productTypeId' | 'fuelTypeId' | 'formatId' | 'colorId' | 'sizeId') =>
-  async (id: string) => prisma.product.count({ where: { [column]: id } });
+type UsageColumn = 'productTypeId' | 'fuelTypeId' | 'seriesId' | 'formatId' | 'colorId' | 'sizeId';
+
+/// Cuantos productos usan cada valor, en una sola consulta.
+///
+/// Antes se contaba fila por fila: abrir Colores lanzaba catorce count() y
+/// Series treinta y cuatro, todos en paralelo. Ademas de lento, esa rafaga de
+/// consultas simultaneas es la clase de carga que hace tropezar al Postgres
+/// local. Un GROUP BY responde lo mismo de una vez.
+async function usageByColumn(column: UsageColumn): Promise<Map<string, number>> {
+  const rows = await prisma.product.groupBy({ by: [column], _count: { _all: true } });
+  const usage = new Map<string, number>();
+  for (const row of rows) {
+    const id = row[column];
+    // Los productos sin ese atributo se agrupan bajo null y no cuentan.
+    if (id !== null) usage.set(id, row._count._all);
+  }
+  return usage;
+}
+
+/// Las dos tablas de union se cuentan igual, pero cada una por su lado: un
+/// helper generico sobre ambas obligaria a castear la fila y perderia justo la
+/// comprobacion de que la columna existe.
+async function usageByCategory(): Promise<Map<string, number>> {
+  const rows = await prisma.productCategory.groupBy({
+    by: ['categoryId'],
+    _count: { _all: true },
+  });
+  return new Map(rows.map((row) => [row.categoryId, row._count._all]));
+}
+
+async function usageByCompatibleSeries(): Promise<Map<string, number>> {
+  const rows = await prisma.productCompatibility.groupBy({
+    by: ['seriesId'],
+    _count: { _all: true },
+  });
+  return new Map(rows.map((row) => [row.seriesId, row._count._all]));
+}
 
 export const CATALOGS: Record<string, CatalogConfig> = {
   tipos: {
@@ -51,13 +98,19 @@ export const CATALOGS: Record<string, CatalogConfig> = {
     singular: 'tipo de producto',
     description: 'Qué es el producto: asador, ahumador, plancha, accesorio.',
     async list() {
-      const rows = await prisma.productType.findMany({ orderBy: { position: 'asc' } });
-      return Promise.all(
-        rows.map(async (row) => ({ ...row, usage: await countByColumn('productTypeId')(row.id) })),
-      );
+      const [rows, usage] = await Promise.all([
+        prisma.productType.findMany({
+          orderBy: { position: 'asc' },
+          select: { id: true, slug: true, name: true, position: true, active: true },
+        }),
+        usageByColumn('productTypeId'),
+      ]);
+      return rows.map((row) => ({ ...row, usage: usage.get(row.id) ?? 0 }));
     },
     async create(data) {
-      await prisma.productType.create({ data: { slug: data.slug, name: data.name, position: data.position } });
+      await prisma.productType.create({
+        data: { slug: data.slug, name: data.name, position: data.position },
+      });
     },
     async update(id, data) {
       await prisma.productType.update({
@@ -76,13 +129,19 @@ export const CATALOGS: Record<string, CatalogConfig> = {
     singular: 'combustible',
     description: 'Con qué funciona: carbón, gas, eléctrico, pellet.',
     async list() {
-      const rows = await prisma.fuelType.findMany({ orderBy: { position: 'asc' } });
-      return Promise.all(
-        rows.map(async (row) => ({ ...row, usage: await countByColumn('fuelTypeId')(row.id) })),
-      );
+      const [rows, usage] = await Promise.all([
+        prisma.fuelType.findMany({
+          orderBy: { position: 'asc' },
+          select: { id: true, slug: true, name: true, position: true, active: true },
+        }),
+        usageByColumn('fuelTypeId'),
+      ]);
+      return rows.map((row) => ({ ...row, usage: usage.get(row.id) ?? 0 }));
     },
     async create(data) {
-      await prisma.fuelType.create({ data: { slug: data.slug, name: data.name, position: data.position } });
+      await prisma.fuelType.create({
+        data: { slug: data.slug, name: data.name, position: data.position },
+      });
     },
     async update(id, data) {
       await prisma.fuelType.update({
@@ -101,20 +160,25 @@ export const CATALOGS: Record<string, CatalogConfig> = {
     singular: 'serie',
     description: 'Línea de producto: Spirit, Genesis, Summit, Q, Traveler.',
     async list() {
-      const rows = await prisma.series.findMany({ orderBy: { name: 'asc' } });
-      return Promise.all(
-        rows.map(async (row) => ({
-          ...row,
-          // Una serie se usa de dos formas: como serie propia de un asador y
-          // como compatibilidad declarada por un accesorio. Las dos cuentan.
-          usage:
-            (await prisma.product.count({ where: { seriesId: row.id } })) +
-            (await prisma.productCompatibility.count({ where: { seriesId: row.id } })),
-        })),
-      );
+      // Una serie se usa de dos formas: como serie propia de un asador y como
+      // compatibilidad declarada por un accesorio. Las dos cuentan.
+      const [rows, propios, compatibles] = await Promise.all([
+        prisma.series.findMany({
+          orderBy: { name: 'asc' },
+          select: { id: true, slug: true, name: true, position: true, active: true },
+        }),
+        usageByColumn('seriesId'),
+        usageByCompatibleSeries(),
+      ]);
+      return rows.map((row) => ({
+        ...row,
+        usage: (propios.get(row.id) ?? 0) + (compatibles.get(row.id) ?? 0),
+      }));
     },
     async create(data) {
-      await prisma.series.create({ data: { slug: data.slug, name: data.name, position: data.position } });
+      await prisma.series.create({
+        data: { slug: data.slug, name: data.name, position: data.position },
+      });
     },
     async update(id, data) {
       await prisma.series.update({
@@ -133,13 +197,19 @@ export const CATALOGS: Record<string, CatalogConfig> = {
     singular: 'formato',
     description: 'Cómo se instala o transporta: portátil, empotrable, de carro.',
     async list() {
-      const rows = await prisma.format.findMany({ orderBy: { position: 'asc' } });
-      return Promise.all(
-        rows.map(async (row) => ({ ...row, usage: await countByColumn('formatId')(row.id) })),
-      );
+      const [rows, usage] = await Promise.all([
+        prisma.format.findMany({
+          orderBy: { position: 'asc' },
+          select: { id: true, slug: true, name: true, position: true, active: true },
+        }),
+        usageByColumn('formatId'),
+      ]);
+      return rows.map((row) => ({ ...row, usage: usage.get(row.id) ?? 0 }));
     },
     async create(data) {
-      await prisma.format.create({ data: { slug: data.slug, name: data.name, position: data.position } });
+      await prisma.format.create({
+        data: { slug: data.slug, name: data.name, position: data.position },
+      });
     },
     async update(id, data) {
       await prisma.format.update({
@@ -159,10 +229,14 @@ export const CATALOGS: Record<string, CatalogConfig> = {
     description: 'Color del producto. La muestra se ve en la tienda.',
     hasHex: true,
     async list() {
-      const rows = await prisma.color.findMany({ orderBy: { name: 'asc' } });
-      return Promise.all(
-        rows.map(async (row) => ({ ...row, usage: await countByColumn('colorId')(row.id) })),
-      );
+      const [rows, usage] = await Promise.all([
+        prisma.color.findMany({
+          orderBy: { name: 'asc' },
+          select: { id: true, slug: true, name: true, position: true, active: true, hex: true },
+        }),
+        usageByColumn('colorId'),
+      ]);
+      return rows.map((row) => ({ ...row, usage: usage.get(row.id) ?? 0 }));
     },
     async create(data) {
       await prisma.color.create({
@@ -192,17 +266,16 @@ export const CATALOGS: Record<string, CatalogConfig> = {
     singular: 'tamaño',
     description: 'Medida del asador en pulgadas.',
     async list() {
-      const rows = await prisma.sizeOption.findMany({ orderBy: { position: 'asc' } });
-      return Promise.all(
-        rows.map(async (row) => ({
-          id: row.id,
-          slug: row.slug,
-          name: row.name,
-          position: row.position,
-          active: row.active,
-          usage: await countByColumn('sizeId')(row.id),
-        })),
-      );
+      // Se seleccionan los campos uno a uno y no con spread: SizeOption lleva
+      // `inches` como Decimal, que no cruza a un componente de cliente.
+      const [rows, usage] = await Promise.all([
+        prisma.sizeOption.findMany({
+          orderBy: { position: 'asc' },
+          select: { id: true, slug: true, name: true, position: true, active: true },
+        }),
+        usageByColumn('sizeId'),
+      ]);
+      return rows.map((row) => ({ ...row, usage: usage.get(row.id) ?? 0 }));
     },
     async create(data) {
       await prisma.sizeOption.create({
@@ -226,31 +299,14 @@ export const CATALOGS: Record<string, CatalogConfig> = {
     singular: 'categoría',
     description: 'Las secciones del menú de la tienda.',
     async list() {
-      const rows = await prisma.category.findMany({ orderBy: { position: 'asc' } });
-      return Promise.all(
-        rows.map(async (row) => ({
-          id: row.id,
-          slug: row.slug,
-          name: row.name,
-          position: row.position,
-          active: row.active,
-          usage: await prisma.productCategory.count({ where: { categoryId: row.id } }),
-        })),
-      );
-    },
-    async create(data) {
-      await prisma.category.create({
-        data: { slug: data.slug, name: data.name, position: data.position },
-      });
-    },
-    async update(id, data) {
-      await prisma.category.update({
-        where: { id },
-        data: { slug: data.slug, name: data.name, position: data.position, active: data.active },
-      });
-    },
-    async remove(id) {
-      await prisma.category.delete({ where: { id } });
+      const [rows, usage] = await Promise.all([
+        prisma.category.findMany({
+          orderBy: { position: 'asc' },
+          select: { id: true, slug: true, name: true, position: true, active: true },
+        }),
+        usageByCategory(),
+      ]);
+      return rows.map((row) => ({ ...row, usage: usage.get(row.id) ?? 0 }));
     },
   },
 };
