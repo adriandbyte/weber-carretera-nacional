@@ -9,8 +9,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "test": "tsx test/schemas.test.ts && tsx test/pendientes.test.ts && tsx test/compatibilidad.test.ts && tsx test/publicar.test.ts"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@weber/db": "workspace:*",

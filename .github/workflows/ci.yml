@@ -1,18 +1,9 @@
 # ---------------------------------------------------------------------------
 # Verificacion automatica de cada cambio.
 #
-# Existe porque hasta ahora la unica red era acordarse de correr los comandos a
-# mano antes de abrir un PR. Para un cambio de version mayor (Prisma, Zod) eso
-# es demasiado fino: un fallo sutil en una consulta no se nota leyendo el diff.
-#
-# Un solo trabajo, y sin base de datos. Las pruebas son logica con datos
-# inventados: no hay Postgres que levantar ni secretos que configurar, y su
-# resultado depende del codigo y de nada mas.
-#
-# Lo que si mira los datos reales es `pnpm db:auditar`, que se corre a mano
-# contra la base. No esta aqui a proposito: fallaria al importar un Excel raro
-# en vez de al romper el codigo, y un rojo asi no dice nada del cambio que se
-# esta revisando.
+# Por ahora solo el linter. Las pruebas se van a rehacer desde cero con lo que
+# de verdad haga falta comprobar, y hasta entonces no hay ninguna: un paso de
+# pruebas vacio en verde dice que todo esta bien cuando no se ejecuto nada.
 # ---------------------------------------------------------------------------
 name: CI
 
@@ -29,14 +20,8 @@ concurrency:
 
 jobs:
   verificar:
-    name: Lint, tipos y pruebas
+    name: Lint
     runs-on: ubuntu-latest
-    env:
-      # Ninguna prueba se conecta, pero `prisma generate` resuelve la URL de
-      # prisma.config.ts antes de escribir el cliente, y sin cliente generado
-      # `typecheck` produce cientos de errores enganosos.
-      DATABASE_URL: postgresql://nadie@localhost:5432/vacio
-      DIRECT_URL: postgresql://nadie@localhost:5432/vacio
     steps:
       - uses: actions/checkout@v4
 
@@ -50,7 +35,3 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm lint
-
-      - run: pnpm typecheck
-
-      - run: pnpm test

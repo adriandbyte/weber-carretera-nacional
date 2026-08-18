@@ -43,16 +43,6 @@
       // antes; en un checkout limpio las dos tareas corrian en paralelo y tsc
       // perdia la carrera.
       "dependsOn": ["^generate", "generate"]
-    },
-    "test": {
-      // Ya se cachean: las pruebas son logica con datos inventados y su
-      // resultado solo depende del codigo, que es justo lo que turbo si sabe
-      // mirar. Cuando consultaban la base habia que desactivar la cache, porque
-      // un acierto habria sido una prueba que en realidad no se ejecuto.
-      //
-      // Lo que necesita la base es `pnpm db:auditar`, que no es una prueba y no
-      // pasa por aqui.
-      "dependsOn": ["^generate", "generate"]
     }
   }
 }

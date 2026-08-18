@@ -26,7 +26,6 @@ categorías, carrito y login real.
 pnpm dev          # las dos apps (web :3000, admin :3001)
 pnpm lint         # eslint en las dos apps
 pnpm typecheck    # tsc --noEmit en todo
-pnpm test         # pruebas (tocan la base de datos real, ver abajo)
 pnpm db:migrate   # crear/aplicar migración
 pnpm db:studio    # explorar la base
 ```
@@ -34,8 +33,8 @@ pnpm db:studio    # explorar la base
 **No levantes los servidores tú.** Si hace falta ver algo en el navegador, dale
 al usuario el comando (`pnpm dev`) y espera a que lo arranque.
 
-Antes de dar por terminado un cambio: `pnpm lint && pnpm typecheck && pnpm test`.
-Los tres tienen que pasar, incluso si lo que falla venía roto de antes.
+Antes de dar por terminado un cambio: `pnpm lint && pnpm typecheck`. Los dos
+tienen que pasar, incluso si lo que falla venía roto de antes.
 
 ## Reglas del proyecto
 
@@ -56,8 +55,8 @@ Los tres tienen que pasar, incluso si lo que falla venía roto de antes.
 - **Un campo que quien captura no necesita decidir no va en la pantalla.** El
   slug, el meta título, la marca y el stock se resuelven en el servidor.
 - **El slug se congela al publicar.** Cambiarlo después rompe enlaces vivos e
-  indexación. La regla vive en `apps/admin/src/app/productos/[id]/actions.ts` y
-  tiene pruebas.
+  indexación. La regla vive en `apps/admin/src/app/productos/[id]/actions.ts`
+  (`deriveSlug`) y hoy no la cubre nada.
 - **Cada ruta del panel lleva su `loading.tsx`** con un esqueleto que calca su
   layout (piezas comunes en `apps/admin/src/components/skeletons.tsx`). Si creas
   una pantalla y no le pones el suyo, hereda el del segmento de arriba y el
@@ -75,14 +74,9 @@ Los tres tienen que pasar, incluso si lo que falla venía roto de antes.
   parte del CLI de Prisma. Por eso empieza con `import 'dotenv/config'`. Si lo
   quitas, `prisma migrate` se queda sin `DATABASE_URL` y el error no menciona el
   `.env`.
-- **Ninguna prueba toca la base.** Son lógica con datos inventados, corren en CI
-  sin Postgres y no dependen del catálogo importado. Si te descubres necesitando
-  la base para probar algo, la señal es que la decisión está enredada con la
-  consulta: sácala a una función pura (como `motivoParaNoBorrar`) o inyecta la
-  búsqueda (como `elegirSiguientePendiente`).
-- **No se comprueba la base contra el Excel.** El importador fue para arrancar
-  el proyecto una vez, no es algo que haya que vigilar. Si escribes una prueba
-  que cuenta filas o compara slugs contra el catálogo importado, sobra.
+- **No hay pruebas.** Se borraron para rehacerlas desde cero con lo que de
+  verdad haga falta comprobar. El CI solo corre el linter. No añadas pruebas
+  por tu cuenta: se van a definir aparte.
 - **Las imágenes tienen dos almacenamientos** (disco local o Vercel Blob) según
   haya `BLOB_READ_WRITE_TOKEN`. Las locales solo existen en la máquina que
   importó: en un despliegue esas URLs no resuelven.
@@ -125,9 +119,9 @@ Reglas de las skills que ya están aplicadas y conviene no deshacer:
 - Navegación interna con `next/link`, no `<a href>`: sin él no hay precarga.
 - `robots.ts` y `sitemap.ts` salen de la base y solo listan lo publicado.
 - El panel declara `robots: { index: false }`. Nunca debe indexarse.
-- `turbo.json`: `lint` no depende de nada. `typecheck` y `test` dependen de
-  `^generate` **y de `generate`**: necesitan el cliente de Prisma, y con solo el
-  circunflejo `@weber/db` no esperaba a su propia generación.
+- `turbo.json`: `lint` no depende de nada. `typecheck` depende de `^generate`
+  **y de `generate`**: necesita el cliente de Prisma, y con solo el circunflejo
+  `@weber/db` no esperaba a su propia generación.
 
 ## Pendiente conocido
 
