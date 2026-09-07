@@ -222,9 +222,9 @@ decisión vive en `isInStore()` y tiene pruebas.
   ya está revisando; los otros dos los descubrió el generador: el Genesis S-435
   está dos veces (`36400001` y `36400043`, uno era el de Tailandia) y el
   abrillantador de acero inoxidable tres (`6271`, `8029`, `8039`)
-- 317 productos con precio de la lista 2026. Los 14 sin precio son 9 paquetes
-  de la Grill Academy, 2 tanques de gas y 2 cajas de bolsas de marketing, que
-  no vienen en la lista
+- 317 productos con precio de la lista 2026. Los 14 sin precio son los 10
+  paquetes del catálogo -ninguno viene en la lista-, 2 tanques de gas y 2 cajas
+  de bolsas de marketing
 - 10 SKU de la lista no existen en el inventario: los 6 Q1200 con el esquema de
   SKU viejo, más cuatro productos nuevos (Spirit SB-E-425, funda Smoque 22",
   tabla Weber Works Smoke y mesa lateral de Kettle 18"/22")

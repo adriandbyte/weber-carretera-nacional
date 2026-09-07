@@ -67,14 +67,14 @@ export interface NombreGenerado {
 const REGIONES =
   /\s*[(]?\s*\b(USA?\/CA\/MX|US\/CA\/MX|USA?\/CA|US\/MX|CA\/MX|US\s+CA\s+MX|AMER|USA|TAHILANDIA|TAILANDIA)\b\s*[)]?|\s+\b(US|CA|MX)\b/gi;
 
-/// Las dos abreviaturas que el cliente no supo descifrar. Se quitan del nombre
-/// y el producto queda marcado: si significan algo, el nombre esta perdiendo
-/// informacion y solo ellos pueden decirlo.
+/// Codigos del almacen que salen del nombre sin dejar nada en su lugar.
 ///
-/// Mi lectura, para la segunda ronda: FT seria Flat Top y CS Carbon Steel, que
-/// es como Weber nombra la linea Slate y los accesorios Crafted. Mientras no
-/// lo confirmen no entran al diccionario.
-const PENDIENTES = new Set(['FT', 'CS']);
+/// FT y CS eran las dos abreviaturas que nadie sabia descifrar -mi lectura era
+/// Flat Top y Carbon Steel, de la linea Slate y los accesorios Crafted-, y por
+/// eso los 14 productos que las llevaban salian marcados. El cliente contesto
+/// el 2026-09-07 que se pueden quitar sin problema, asi que se quitan y ya no
+/// se marca nada: los nombres nunca las incluyeron.
+const SOBRAN = new Set(['FT', 'CS']);
 
 /// Ingles y codigos del almacen que describen el producto, con el significado
 /// que confirmo el cliente. Lo que es marca registrada de Weber no esta aqui:
@@ -449,10 +449,7 @@ function desmontar(producto: ProductoANombrar, femenino: boolean, esEquipo: bool
       continue;
     }
 
-    if (PENDIENTES.has(alto)) {
-      notas.push(`falta confirmar qué significa ${alto} en el nombre`);
-      continue;
-    }
+    if (SOBRAN.has(alto)) continue;
 
     tokens.push(palabra);
   }
