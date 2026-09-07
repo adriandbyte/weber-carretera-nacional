@@ -243,6 +243,9 @@ decisión vive en `isInStore()` y tiene pruebas.
   ya está revisando; los otros dos los descubrió el generador: el Genesis S-435
   está dos veces (`36400001` y `36400043`, uno era el de Tailandia) y el
   abrillantador de acero inoxidable tres (`6271`, `8029`, `8039`)
+- 327 productos sin descripción completa. No bloquea publicar y las va a
+  redactar el cliente en el panel antes de producción; mientras tanto la
+  descripción corta repite el nombre
 - 327 productos con precio, uno por cada fila de la lista 2026. Los 14 sin
   precio son los 10 paquetes -ninguno viene en la lista, y ya están
   archivados-, 2 tanques de gas y 2 cajas de bolsas de marketing
@@ -266,7 +269,23 @@ La regla detrás de esto: un campo que quien captura no necesita decidir no
 debería estar en la pantalla. Solo agrega ruido y formas nuevas de equivocarse.
 Por eso "Compatible con" tampoco aparece en asadores, únicamente en accesorios.
 
-Un producto no se puede publicar sin descripción e imagen.
+### Qué impide publicar
+
+Lo comprueban la pantalla y el guardado con la misma regla, `findPending` en
+`packages/core`:
+
+| Impide publicar | Solo se recomienda |
+| --- | --- |
+| Nombre redactado, no el código de Weber | Descripción completa |
+| Descripción corta | Una imagen |
+| Al menos una categoría del menú | |
+| Tipo de producto | |
+
+La descripción completa y la imagen no bloquean a propósito. Las fotos se suben
+al almacenamiento remoto con la tienda ya en línea, y las descripciones las va a
+redactar el cliente en el panel antes de salir a producción (decisión del
+2026-09-07): exigirlas antes dejaría el catálogo entero detenido por un trabajo
+que toca hacer después.
 
 ## Acceso al panel
 
