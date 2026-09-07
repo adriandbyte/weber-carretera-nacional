@@ -88,15 +88,20 @@ pnpm --filter @weber/db exec tsx scripts/analyze-inventario.ts
 ### Lista de precios
 
 ```bash
-pnpm import:precios -- ruta/a/lista-precios.xlsx
-pnpm import:precios -- ruta/a/lista-precios.xlsx --publicar
+pnpm import:precios                        # la lista vigente de data/fuentes
+pnpm import:precios -- ruta/a/otra.xlsx
+pnpm import:precios -- ruta/a/otra.xlsx --publicar
 ```
 
 Cruza por SKU. Detecta solo la fila de encabezados y los nombres de columna
-más comunes (`Clave`/`SKU`/`Código`, `Precio`, `Precio Lista`, `Costo`,
+más comunes (`Clave`/`SKU`/`Código`, `Precio`/`MAP`, `Precio Lista`, `Costo`,
 `Existencia`), así que acepta el archivo tal como venga. Sin `--publicar` solo
 carga precios; con la bandera además publica lo que estaba en borrador y quedó
 con precio mayor a cero.
+
+Los precios de Weber México ya vienen con IVA y son el precio final: se guardan
+tal cual y la tienda no calcula impuestos. `compareAtPrice` queda vacío a
+propósito, porque no hay precio de promoción fijo; las ofertas son de temporada.
 
 ## Imágenes
 
@@ -161,7 +166,12 @@ decisión vive en `isInStore()` y tiene pruebas.
   imagen de ficha
 - 104 productos marcados para revisión, todos por nombre en mayúsculas que hay
   que redactar para la tienda
-- Sin precios: llegan con la lista de precios
+- 317 productos con precio de la lista 2026. Los 14 sin precio son 9 paquetes
+  de la Grill Academy, 2 tanques de gas y 2 cajas de bolsas de marketing, que
+  no vienen en la lista
+- 10 SKU de la lista no existen en el inventario: los 6 Q1200 con el esquema de
+  SKU viejo, más cuatro productos nuevos (Spirit SB-E-425, funda Smoque 22",
+  tabla Weber Works Smoke y mesa lateral de Kettle 18"/22")
 
 ## Qué se captura y qué se calcula
 

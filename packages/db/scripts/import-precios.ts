@@ -1,7 +1,8 @@
 // ---------------------------------------------------------------------------
 // Importa una lista de precios y la cruza con el inventario por SKU.
 //
-//   pnpm import:precios -- ruta/a/lista-precios.xlsx
+//   pnpm import:precios                        usa la lista vigente
+//   pnpm import:precios -- ruta/a/otra.xlsx     usa otro archivo
 //
 // Se separa del importador de inventario a proposito: la lista de precios
 // llega despues y se va a actualizar muchas mas veces que el catalogo.
@@ -12,23 +13,34 @@
 //
 // Encabezados reconocidos (sin distinguir mayusculas ni acentos):
 //   SKU      sku, codigo, clave, articulo, modelo, no. parte
-//   Precio   precio, precio publico, precio venta, pvp, price, precio lista
+//   Precio   precio, precio publico, precio venta, pvp, price, map
 //   Lista    precio lista, precio regular, precio anterior, compare
 //   Costo    costo, cost
 //   Stock    stock, existencia, inventario, cantidad
+//
+// Los precios de Weber Mexico ya vienen con IVA: son el precio final que ve
+// el cliente, asi que se guardan tal cual y la tienda no calcula impuestos.
 //
 // Nada se publica solo. Un producto pasa de borrador a activo unicamente
 // con --publicar, y aun asi solo si quedo con precio mayor a cero.
 // ---------------------------------------------------------------------------
 
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import ExcelJS from 'exceljs';
 import { prisma, Prisma } from '../src/index.js';
 import { fold } from './lib/normalize.js';
 
+const here = path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = path.resolve(here, '../../..');
+const DEFAULT_FILE = path.join(REPO_ROOT, 'data/fuentes/Lista de Precios 2026 - Pagina Web.xlsx');
+
 const HEADERS = {
   sku: ['sku', 'codigo', 'clave', 'articulo', 'modelo', 'no. parte', 'no parte', 'numero de parte'],
-  price: ['precio', 'precio publico', 'precio venta', 'precio de venta', 'pvp', 'price'],
+  // "map" es el precio minimo que Weber autoriza a publicar, y es el que la
+  // marca manda en su lista anual. Viene con el año pegado ("MAP 2026"), asi
+  // que se reconoce por prefijo y la lista del año que entre sirve igual.
+  price: ['precio', 'precio publico', 'precio venta', 'precio de venta', 'pvp', 'price', 'map'],
   compareAt: ['precio lista', 'precio regular', 'precio anterior', 'compare', 'precio de lista'],
   cost: ['costo', 'cost', 'precio costo'],
   stock: ['stock', 'existencia', 'existencias', 'inventario', 'cantidad'],
@@ -86,14 +98,7 @@ function parseInteger(value: ExcelJS.CellValue): number | null {
 async function main() {
   const args = process.argv.slice(2);
   const publish = args.includes('--publicar');
-  const file = args.find((arg) => !arg.startsWith('--'));
-
-  if (!file) {
-    console.error('Falta la ruta del archivo.');
-    console.error('  pnpm import:precios -- data/fuentes/lista-precios.xlsx [--publicar]');
-    process.exitCode = 1;
-    return;
-  }
+  const file = args.find((arg) => !arg.startsWith('--')) ?? DEFAULT_FILE;
 
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.readFile(file);
