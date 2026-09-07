@@ -446,6 +446,11 @@ export function normalizeRow(row: RawRow): NormalizedProduct {
   }
 
   const discontinued = fold(clean(row.categoryD)).includes('descontinuado');
+  // Weber prefija con "Marketing" el material que no se vende: las bolsas
+  // ecologicas vienen por caja de 150 y 200 piezas y son las que la tienda
+  // regala en el mostrador (confirmado por el cliente el 2026-09-07). Entran
+  // archivadas, como los paquetes.
+  const deMostrador = fold(clean(row.name)).startsWith('marketing ');
 
   return {
     sku: row.sku,
@@ -469,7 +474,12 @@ export function normalizeRow(row: RawRow): NormalizedProduct {
     // los quiere en la tienda por ahora. Archivado y no borrado, que es la
     // diferencia que importa: su nombre trae la receta de lo que incluye, y
     // recuperar eso si se borra significa volver al Excel.
-    status: discontinued ? 'DISCONTINUED' : productType === 'paquete' ? 'ARCHIVED' : 'DRAFT',
+    status:
+      discontinued
+        ? 'DISCONTINUED'
+        : productType === 'paquete' || deMostrador
+          ? 'ARCHIVED'
+          : 'DRAFT',
     needsReview: notes.length > 0,
     reviewNote: notes.length > 0 ? notes.join('; ') : null,
     rawCategory: clean(row.categoryD) || null,

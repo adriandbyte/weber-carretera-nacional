@@ -54,6 +54,17 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(here, '../../..');
 const DEFAULT_FILE = path.join(REPO_ROOT, 'data/fuentes/Lista de Precios 2026 - Pagina Web.xlsx');
 
+/// Precios que el cliente dio de palabra porque su lista no los trae.
+///
+/// Los dos tanques de gas se venden, pero se quedaron fuera de la lista 2026
+/// (2026-09-07: 400 gr $399, 10 kg $1,999). Se aplican solo si el producto
+/// sigue sin precio, asi que en cuanto Weber los meta en su lista, la lista
+/// manda y este mapa deja de hacer nada.
+const PRECIOS_DICHOS = new Map([
+  ['60006', '399'],
+  ['60008', '1999'],
+]);
+
 const HEADERS = {
   sku: ['sku', 'codigo', 'clave', 'articulo', 'modelo', 'no. parte', 'no parte', 'numero de parte'],
   name: ['descripcion', 'producto', 'nombre', 'description'],
@@ -314,11 +325,23 @@ async function main() {
     matched += 1;
   }
 
+  // Los precios de palabra van al final y solo donde no hay precio: la lista
+  // es la autoridad y nunca se le pasa por encima.
+  let dichos = 0;
+  for (const [sku, monto] of PRECIOS_DICHOS) {
+    const aplicado = await prisma.product.updateMany({
+      where: { sku, price: null },
+      data: { price: new Prisma.Decimal(monto) },
+    });
+    dichos += aplicado.count;
+  }
+
   const sinPrecio = await prisma.product.count({ where: { price: null } });
 
   console.log('\nResumen');
   console.log(`  Precios aplicados:        ${matched}`);
   console.log(`  Productos dados de alta:  ${created.length}${crear ? '' : ' (usa --crear)'}`);
+  console.log(`  Precios de palabra:       ${dichos}`);
   if (created.length > 0) console.log(`    ${created.join(', ')}`);
   console.log(`  Publicados:               ${published}${publish ? '' : ' (usa --publicar)'}`);
   console.log(`  SKU sin producto:         ${notFound.length}`);

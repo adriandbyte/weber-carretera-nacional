@@ -227,9 +227,10 @@ decisión vive en `isInStore()` y tiene pruebas.
   nombre de venta. Los 7 restantes son 4 paquetes de la Grill Academy, cuyo
   nombre es una lista de SKU, y 3 productos cuyo nombre en español hay que
   decidir con el cliente
-- 10 paquetes archivados por decisión del cliente: no los quiere en la tienda
-  por ahora. Archivados y no borrados, porque su nombre trae la receta de lo que
-  incluyen y recuperar eso significaría volver al Excel
+- 16 productos archivados: los 10 paquetes, 3 Q1200 de colores que Weber ya no
+  surte y 2 cajas de bolsas ecológicas, que son material de mostrador y no
+  producto de tienda. Archivados y no borrados: se reactivan en un clic, y en el
+  caso de los paquetes su nombre trae la receta de lo que incluyen
 - 14 productos pendientes: los 10 dados de alta desde la lista de precios, que
   necesitan que alguien confirme su clasificación, más 3 cuyo nombre en español
   hay que decidir y el Summit Kamado S6, que necesita traducir `Grill Center`
@@ -246,9 +247,9 @@ decisión vive en `isInStore()` y tiene pruebas.
 - 327 productos sin descripción completa. No bloquea publicar y las va a
   redactar el cliente en el panel antes de producción; mientras tanto la
   descripción corta repite el nombre
-- 327 productos con precio, uno por cada fila de la lista 2026. Los 14 sin
-  precio son los 10 paquetes -ninguno viene en la lista, y ya están
-  archivados-, 2 tanques de gas y 2 cajas de bolsas de marketing
+- **Los 325 productos activos tienen precio.** 327 salen de la lista 2026, uno
+  por fila, y los dos tanques de gas de un precio que el cliente dio de palabra
+  porque su lista no los trae. Sin precio quedan solo los 12 archivados
 - 10 SKU de la lista no existen en el inventario: los 6 Q1200 con el esquema de
   SKU viejo, más cuatro productos nuevos (Spirit SB-E-425, funda Smoque 22",
   tabla Weber Works Smoke y mesa lateral de Kettle 18"/22")
