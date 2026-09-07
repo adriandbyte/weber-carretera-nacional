@@ -111,31 +111,34 @@ const INGLES =
 /// se traduce palabra por palabra: "GRATE GRILL CLEANER" no es "Parrilla Asador
 /// Limpiador", es un limpiador para las parrillas del asador.
 ///
-/// Las marcadas como propuesta son las que le propuse al cliente en el
-/// cuestionario y no corrigio, mas las que no le pregunte. Salen señaladas en
-/// la tabla de revision para que las lea con calma.
+/// Diecisiete de estas frases eran propuestas mias -productos cuyo nombre en
+/// ingles no describe nada: TACO RACK, DUTCH OVEN DUO, LARGE FORMAT SEAR- y
+/// salian marcadas para que el cliente las leyera. Las aprobo todas el
+/// 2026-09-07, asi que ya no lleva ninguna la marca `propuesta`.
+///
+/// El campo se queda para lo que venga: cuando haya que inventar un nombre
+/// nuevo, se marca y el producto sale señalado en la tabla de revision hasta
+/// que alguien lo confirme.
 const FRASES: Map<string, { frase: string; propuesta?: boolean }> = new Map([
   // Herramientas y utensilios
   ['INFRARED THERMOMETER', { frase: 'Termómetro Infrarrojo' }],
-  ['SMASHED BURGER SET', { frase: 'Juego {marca} para Hamburguesa Smash', propuesta: true }],
+  ['SMASHED BURGER SET', { frase: 'Juego {marca} para Hamburguesa Smash' }],
   ['TACO RACK', { frase: 'Portataquero' }],
-  ['DUTCH OVEN DUO', { frase: 'Olla Dúo de Hierro Fundido', propuesta: true }],
-  ['ROTISSERIE SKEWERS', { frase: 'Brochetas {marca} para Rosticero', propuesta: true }],
+  ['DUTCH OVEN DUO', { frase: 'Olla Dúo de Hierro Fundido' }],
+  ['ROTISSERIE SKEWERS', { frase: 'Brochetas {marca} para Rosticero' }],
   ['LOGO CUTTING BOARD', { frase: 'Tabla para Picar con Logo' }],
-  ['HANDLE LIGHT', { frase: 'Lámpara {marca} para el Asa del Asador', propuesta: true }],
+  ['HANDLE LIGHT', { frase: 'Lámpara {marca} para el Asa del Asador' }],
   ['SCOOP', { frase: 'Pala' }],
   ['SPATULA SET', { frase: 'Juego de Espátulas' }],
   ['PORTATIL TOOL SET', { frase: 'Juego de Herramientas Portátil' }],
-  ['SMASHED BURGER PRESS', { frase: 'Prensa {marca} para Hamburguesa Smash', propuesta: true }],
+  ['SMASHED BURGER PRESS', { frase: 'Prensa {marca} para Hamburguesa Smash' }],
   ['PRESS', { frase: 'Prensa' }],
-  ['KEEP WARM RACK', { frase: 'Rejilla Calientaplatos', propuesta: true }],
+  ['KEEP WARM RACK', { frase: 'Rejilla Calientaplatos' }],
   ['ROASTING TRAYS COMPATIBLE WITH Q 2800N+ GAS GRILLS', {
     frase: 'Bandejas para Asar {marca} para Asador Q2800',
-    propuesta: true,
   }],
   ['TRAY AND TRIVET ROASTING PACK COMPATIBLE WITH Q 2800N+ GAS GRILLS', {
     frase: 'Juego de Bandeja y Rejilla para Asar {marca} para Asador Q2800',
-    propuesta: true,
   }],
   ['TERMÓMETRO I GRILL MINI', { frase: 'Termómetro iGrill Mini' }],
   ['RECETARIO "WAY TO GRILL"', { frase: 'Recetario {marca} "Way to Grill"' }],
@@ -147,8 +150,8 @@ const FRASES: Map<string, { frase: string; propuesta?: boolean }> = new Map([
   ['SPATULA FLEXIBLE', { frase: 'Espátula Flexible' }],
   ['SCRAPER', { frase: 'Rasqueta' }],
   ['BOTELLAS', { frase: 'Botellas Dosificadoras' }],
-  ['BASTING DOME', { frase: 'Campana para Cocción', propuesta: true }],
-  ['XL BASTING DOME', { frase: 'Campana XL para Cocción', propuesta: true }],
+  ['BASTING DOME', { frase: 'Campana para Cocción' }],
+  ['XL BASTING DOME', { frase: 'Campana XL para Cocción' }],
   ['SET HERRAMIENTAS ESSENTIAL', { frase: 'Juego de Herramientas Esencial' }],
   ['SET DE HERRAMIENTAS STARTER SET', { frase: 'Juego de Herramientas Inicial' }],
   ['KIT DESAYUNO', { frase: 'Kit para Desayuno' }],
@@ -172,11 +175,11 @@ const FRASES: Map<string, { frase: string; propuesta?: boolean }> = new Map([
   ['3B SF EX4 PECI GRT', { frase: 'Parrillas de Porcelana Esmaltada {marca} {equipo} de 3 Quemadores' }],
   ['WOK STEAMER PECI', { frase: 'Wok Vaporera de Porcelana Esmaltada' }],
   ['PLANCHA COMPLETA', { frase: 'Plancha Completa' }],
-  ['LARGE FORMAT SEAR', { frase: 'Plancha de Sellado de Formato Grande', propuesta: true }],
-  ['LARGE FORMAT STONE', { frase: 'Piedra para Pizza de Formato Grande', propuesta: true }],
-  ['LARGE FORMAT FLATTOP', { frase: 'Plancha Lisa de Formato Grande', propuesta: true }],
-  ['LARGE FORMAT BASKET', { frase: 'Canasta de Formato Grande', propuesta: true }],
-  ['INSERT FRAME', { frase: 'Marco Adaptador', propuesta: true }],
+  ['LARGE FORMAT SEAR', { frase: 'Plancha de Sellado de Formato Grande' }],
+  ['LARGE FORMAT STONE', { frase: 'Piedra para Pizza de Formato Grande' }],
+  ['LARGE FORMAT FLATTOP', { frase: 'Plancha Lisa de Formato Grande' }],
+  ['LARGE FORMAT BASKET', { frase: 'Canasta de Formato Grande' }],
+  ['INSERT FRAME', { frase: 'Marco Adaptador' }],
   // Fundas y muebles
   ['PREMIUM GRILL COVER 600', { frase: 'Funda Premium {marca} para Ahumador Searwood 600' }],
   ['PREMIUM GRILL COVER XL 600', { frase: 'Funda Premium {marca} para Ahumador Searwood XL 600' }],
@@ -195,11 +198,10 @@ const FRASES: Map<string, { frase: string; propuesta?: boolean }> = new Map([
     frase: 'Parrillas de Cocción {marca} para Asador Spirit 210 y 325',
   }],
   ['TABLA MADERA', { frase: 'Tabla de Madera' }],
-  ['CADDY WITH TRAY LID', { frase: 'Organizador con Tapa Bandeja', propuesta: true }],
+  ['CADDY WITH TRAY LID', { frase: 'Organizador con Tapa Bandeja' }],
   // Consumibles y refacciones
   ['PAQ 10 BANDEJAS RECOLECTORAS PELLET', {
     frase: 'Paquete de 10 Bandejas Recolectoras {marca} para Searwood y Summit',
-    propuesta: true,
   }],
 ]);
 

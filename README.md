@@ -212,9 +212,9 @@ decisión vive en `isInStore()` y tiene pruebas.
   nombre de venta. Los 7 restantes son 4 paquetes de la Grill Academy, cuyo
   nombre es una lista de SKU, y 3 productos cuyo nombre en español hay que
   decidir con el cliente
-- 38 productos marcados para revisión: 18 con un nombre que propuse yo y está
-  sin confirmar, 14 porque el nombre depende de las abreviaturas `FT` y `CS`, y
-  el resto por traducción o nombre pendiente
+- 8 productos marcados para revisión: 4 paquetes cuyo nombre es la lista de SKU
+  de lo que traen dentro, 3 productos cuyo nombre en español hay que decidir, y
+  el Summit Kamado S6, que necesita traducir `Grill Center`
 - 331 con descripción corta, que hoy repite el nombre. Con eso ya no queda
   ningún pendiente que impida publicar: falta la descripción completa en los
   331 y una imagen en 22, y ninguna de las dos bloquea
