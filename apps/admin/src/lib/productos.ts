@@ -18,6 +18,11 @@
 import { prisma, type Prisma } from '@weber/db';
 
 export const PENDING_WHERE: Prisma.ProductWhereInput = {
+  // Lo archivado y lo descontinuado no es trabajo pendiente: son productos que
+  // alguien decidio sacar de la tienda. Sin esta linea, los 10 paquetes que el
+  // cliente pidio archivar seguirian contando como pendientes y la cuenta
+  // nunca podria llegar a cero.
+  status: { notIn: ['ARCHIVED', 'DISCONTINUED'] },
   OR: [
     { needsReview: true },
     { shortDescription: null },

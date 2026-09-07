@@ -34,7 +34,7 @@ export interface NormalizedProduct {
   colorSlug: string | null;
   sizeSlug: string | null;
   categorySlugs: string[];
-  status: 'DRAFT' | 'DISCONTINUED';
+  status: 'DRAFT' | 'ARCHIVED' | 'DISCONTINUED';
   needsReview: boolean;
   reviewNote: string | null;
   rawCategory: string | null;
@@ -421,7 +421,11 @@ export function normalizeRow(row: RawRow): NormalizedProduct {
     colorSlug: color,
     sizeSlug: size,
     categorySlugs: categories,
-    status: discontinued ? 'DISCONTINUED' : 'DRAFT',
+    // Los paquetes entran archivados por decision del cliente (2026-09-07): no
+    // los quiere en la tienda por ahora. Archivado y no borrado, que es la
+    // diferencia que importa: su nombre trae la receta de lo que incluye, y
+    // recuperar eso si se borra significa volver al Excel.
+    status: discontinued ? 'DISCONTINUED' : productType === 'paquete' ? 'ARCHIVED' : 'DRAFT',
     needsReview: notes.length > 0,
     reviewNote: notes.length > 0 ? notes.join('; ') : null,
     rawCategory: clean(row.categoryD) || null,

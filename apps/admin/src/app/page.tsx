@@ -29,6 +29,7 @@ export default async function DashboardPage() {
         description: true,
         productTypeId: true,
         needsReview: true,
+        status: true,
         _count: { select: { images: true, categories: true } },
       },
     }),
@@ -44,8 +45,16 @@ export default async function DashboardPage() {
     ]),
   ]);
 
-  const total = productos.length;
-  const revisados = productos.map((producto) => ({
+  // Lo archivado y lo descontinuado sale de la cuenta: nadie va a limpiar un
+  // producto que se decidio no vender. Contandolo, la barra de avance no podria
+  // llegar al 100% ni terminando todo el trabajo.
+  const enTrabajo = productos.filter(
+    (producto) => producto.status !== 'ARCHIVED' && producto.status !== 'DISCONTINUED',
+  );
+  const fuera = productos.length - enTrabajo.length;
+
+  const total = enTrabajo.length;
+  const revisados = enTrabajo.map((producto) => ({
     needsReview: producto.needsReview,
     faltantes: findPending({
       name: producto.name,
@@ -116,7 +125,10 @@ export default async function DashboardPage() {
     <div className="max-w-4xl">
       <PageHeader
         title="Resumen"
-        description={`${pluralize(total, 'producto')} en el catálogo, ${publicados} publicados en la tienda.`}
+        description={
+          `${pluralize(total, 'producto')} en el catálogo, ${publicados} publicados en la tienda.` +
+          (fuera > 0 ? ` ${fuera} archivados o descontinuados, fuera de la cuenta.` : '')
+        }
       />
 
       <Card>
