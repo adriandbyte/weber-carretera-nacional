@@ -13,7 +13,6 @@
 // ---------------------------------------------------------------------------
 
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 import { prisma, Prisma } from '@weber/db';
 import {
   acceptsCompatibility,
@@ -22,7 +21,6 @@ import {
   productSchema,
   slugify,
 } from '@weber/core';
-import { findNextPendingId } from '@/lib/productos';
 import {
   prepareImage,
   removeStoredImage,
@@ -92,8 +90,7 @@ export async function saveProduct(
 
   const current = await prisma.product.findUnique({
     where: { id: productId },
-    // name es el nombre de antes de guardar: hace de cursor para "y seguir".
-    select: { sku: true, slug: true, publishedAt: true, name: true },
+    select: { sku: true, slug: true, publishedAt: true },
   });
   if (!current) return { ok: false, message: 'El producto ya no existe.' };
 
@@ -223,24 +220,9 @@ export async function saveProduct(
   revalidatePath('/productos');
   revalidatePath(`/productos/${productId}`);
 
-  // A donde se va despues de guardar. Los tres caminos escriben primero: si la
-  // validacion hubiera fallado ya se habria devuelto el error mas arriba, asi
-  // que nunca se navega dejando cambios sin escribir.
-  const intent = formData.get('intent');
-
-  if (intent === 'next') {
-    // Encadenar fichas sin pasar por la lista es lo que convierte limpiar 331
-    // productos en algo que se hace de corrido.
-    const nextId = await findNextPendingId(current.name, productId);
-    // Sin siguiente es que ya no queda nada pendiente. Se vuelve a la lista en
-    // vez de recargar la misma ficha, que se leeria como que no paso nada.
-    redirect(nextId ? `/productos/${nextId}` : '/productos');
-  }
-
-  if (intent === 'exit') {
-    redirect('/productos');
-  }
-
+  // Guardar deja la ficha abierta. Ya no hay caminos que naveguen al terminar:
+  // el recorrido encadenado servia para limpiar 331 fichas de corrido, y lo
+  // que queda son fichas sueltas que se abren desde la lista.
   return { ok: true, message: 'Cambios guardados.' };
 }
 

@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { slugify } from '@weber/core';
 import {
   CheckboxField,
@@ -85,41 +85,22 @@ const STATUS_OPTIONS = [
   { value: 'DISCONTINUED', label: 'Descontinuado' },
 ];
 
-/// Los botones de la barra comparten formulario y se distinguen por el valor
-/// que envian en `intent`. Los tres guardan; solo cambia a donde llevan
-/// despues: quedarse, salir a la lista o abrir la siguiente ficha.
+/// El boton de guardar. Es un componente aparte porque useFormStatus solo
+/// funciona dentro del <form>, y desde aqui puede decir que esta guardando sin
+/// que el formulario entero se vuelva cliente por eso.
 ///
-/// useFormStatus da un unico `pending` para todo el formulario, asi que sin
-/// esto los tres se pondrian a girar a la vez y no se sabria cual se pulso.
-/// `formData` dice cual fue.
-function SubmitButton({
-  intent,
-  label,
-  pendingLabel,
-  variant,
-  children,
-}: {
-  intent: 'save' | 'exit' | 'next';
-  label: string;
-  pendingLabel: string;
-  variant?: 'outline';
-  children?: React.ReactNode;
-}) {
-  const { pending, data } = useFormStatus();
-  const isThisOne = data?.get('intent') === intent;
+/// Antes eran tres -guardar, guardar y salir, guardar y seguir- y se
+/// distinguian por un campo `intent`. El de "seguir" encadenaba las 331 fichas
+/// que habia que limpiar a mano; ahora el catalogo ya llega con nombre, precio y
+/// descripcion corta, y lo que queda son fichas sueltas, asi que la barra tiene
+/// un solo boton y el formulario no necesita decir cual se pulso.
+function SubmitButton() {
+  const { pending } = useFormStatus();
 
   return (
-    <Button
-      type="submit"
-      name="intent"
-      value={intent}
-      size="lg"
-      variant={variant}
-      disabled={pending}
-    >
-      {pending && isThisOne && <Loader2 className="animate-spin" />}
-      {pending && isThisOne ? pendingLabel : label}
-      {!(pending && isThisOne) && children}
+    <Button type="submit" size="lg" disabled={pending}>
+      {pending && <Loader2 className="animate-spin" />}
+      {pending ? 'Guardando…' : 'Guardar cambios'}
     </Button>
   );
 }
@@ -395,29 +376,13 @@ export function ProductForm({
       {/* Barra fija: con un formulario tan largo, un boton al final del todo
           obliga a bajar cada vez para guardar. */}
       <div className="border-border bg-background/85 fixed inset-x-0 bottom-0 z-10 border-t px-8 py-3 backdrop-blur">
-        {/* Los tres guardan. Ya no hay en la barra ningun "Volver a la lista"
-            que se lleve por delante lo escrito: estaba pegado al boton de
-            guardar y en un formulario tan largo era cuestion de tiempo perder
-            una descripcion recien redactada. Para salir sin guardar sigue
-            estando el enlace "Productos" de arriba, lejos de aqui. */}
-        <div className="mx-auto flex max-w-[88rem] items-center justify-end gap-2">
-          <SubmitButton
-            intent="save"
-            label="Guardar cambios"
-            pendingLabel="Guardando…"
-            variant="outline"
-          />
-          <SubmitButton
-            intent="exit"
-            label="Guardar y salir"
-            pendingLabel="Guardando…"
-            variant="outline"
-          />
-          {/* El principal es este: con 331 fichas por limpiar, lo normal es
-              encadenar una tras otra y salir a la lista es la excepcion. */}
-          <SubmitButton intent="next" label="Guardar y seguir" pendingLabel="Guardando…">
-            <ArrowRight data-icon="inline-end" />
-          </SubmitButton>
+        {/* En la barra no hay ningun "Volver a la lista" que se lleve por
+            delante lo escrito: estaba pegado al de guardar y en un formulario
+            tan largo era cuestion de tiempo perder una descripcion recien
+            redactada. Para salir sin guardar esta el enlace "Productos" de
+            arriba, lejos de aqui. */}
+        <div className="mx-auto flex max-w-[88rem] items-center justify-end">
+          <SubmitButton />
         </div>
       </div>
     </form>
