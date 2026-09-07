@@ -17,6 +17,7 @@ import { redirect } from 'next/navigation';
 import { prisma, Prisma } from '@weber/db';
 import {
   acceptsCompatibility,
+  deriveSeo,
   motivoParaNoPublicar,
   productSchema,
   slugify,
@@ -37,15 +38,6 @@ export interface FormState {
 }
 
 const toDecimal = (value: string | null) => (value === null ? null : new Prisma.Decimal(value));
-
-/// Corta sin partir palabras a la mitad, que en un resultado de Google se ve
-/// como un error tipografico.
-function truncate(value: string, max: number): string {
-  if (value.length <= max) return value;
-  const cut = value.slice(0, max);
-  const lastSpace = cut.lastIndexOf(' ');
-  return (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd();
-}
 
 /// Convierte el nombre en direccion web y resuelve choques.
 ///
@@ -190,11 +182,9 @@ export async function saveProduct(
         sizeId: data.sizeId,
         // brandId y stock no se tocan: no estan en la pantalla, asi que
         // conservan el valor que ya tenian.
-        // Los textos para buscadores se derivan de lo que si se captura. Un
-        // campo de SEO en blanco es peor que uno generado: quien limpia el
-        // catalogo no tiene por que saber que escribir ahi.
-        metaTitle: truncate(data.name, 70),
-        metaDescription: data.shortDescription ? truncate(data.shortDescription, 160) : null,
+        // Los textos para buscadores se derivan de lo que si se captura, con
+        // la misma regla que usa el generador de nombres del catalogo.
+        ...deriveSeo(data.name, data.shortDescription),
         needsReview: data.needsReview,
         // La nota del importador deja de tener sentido una vez revisado.
         reviewNote: data.needsReview ? undefined : null,

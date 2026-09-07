@@ -27,6 +27,7 @@ import { fileURLToPath } from 'node:url';
 import ExcelJS from 'exceljs';
 import { prisma } from '../src/index.js';
 import { slugify } from '../../core/src/schemas.js';
+import { deriveSeo } from '../../core/src/format.js';
 import { generarNombre, necesitaRedaccion } from './lib/nombres.js';
 import { readInventory } from './lib/excel.js';
 import { capitalizarNombre, quitarPuntoFinal, soloNecesitaCapitalizarse } from './lib/capitalizar.js';
@@ -68,6 +69,7 @@ async function main() {
       publishedAt: true,
       needsReview: true,
       reviewNote: true,
+      shortDescription: true,
       productType: { select: { slug: true } },
       fuelType: { select: { slug: true } },
       series: { select: { slug: true } },
@@ -82,6 +84,7 @@ async function main() {
   const filas: Fila[] = [];
   const cambios: { id: string; sku: string; nombre: string; slug: string; slugAnterior: string }[] = [];
   const avisos: { id: string; needsReview: boolean; reviewNote: string | null }[] = [];
+  const resumenes: { id: string; sku: string; shortDescription: string }[] = [];
 
   // El desempate de URLs necesita saber que slugs estan tomados, y los que
   // este mismo recorrido va liberando cuentan como libres.
@@ -163,6 +166,24 @@ async function main() {
       avisos.push({ id: producto.id, needsReview: motivos.length > 0, reviewNote: aviso });
     }
 
+    // La descripcion corta repite el nombre, por decision del cliente: prefiere
+    // no detener el catalogo redactando 331 resumenes, y sin ella no se puede
+    // publicar nada. Es provisional, asi que se reconoce por ser identica al
+    // nombre: en cuanto alguien escriba una de verdad, deja de tocarse.
+    //
+    // El metaDescription que sale de aqui queda igual que el metaTitle. No
+    // penaliza, pero desperdicia la linea de abajo del resultado de Google, y
+    // es la primera cosa que hay que rehacer cuando lleguen las descripciones.
+    const nombreFinal = editadoAMano ? producto.name : propuesto;
+    const resumenEsCopia =
+      !producto.shortDescription ||
+      igual(producto.shortDescription, producto.name) ||
+      igual(producto.shortDescription, nombreFinal) ||
+      igual(producto.shortDescription, plano(original));
+    if (resumenEsCopia && !igual(producto.shortDescription ?? '', nombreFinal)) {
+      resumenes.push({ id: producto.id, sku: producto.sku, shortDescription: nombreFinal });
+    }
+
     if (editadoAMano || igual(propuesto, producto.name)) continue;
 
     // El slug sigue al nombre mientras el producto no se haya publicado. Uno
@@ -228,6 +249,7 @@ async function main() {
   console.log(`  URLs que se mueven:        ${cambios.filter((c) => c.slug !== c.slugAnterior).length}`);
   console.log(`  Marcados para revisión:    ${marcados.length}`);
   console.log(`  Avisos de revisión al día: ${avisos.length}`);
+  console.log(`  Descripciones cortas:      ${resumenes.length}`);
 
   if (sinPropuesta.length > 0) {
     console.log('\nSin nombre que proponer, se quedan como estaban:');
@@ -270,7 +292,7 @@ async function main() {
     ...cambios.map((c) =>
       prisma.product.update({
         where: { id: c.id },
-        data: { name: c.nombre, slug: c.slug, metaTitle: `${c.nombre} | Weber` },
+        data: { name: c.nombre, slug: c.slug, metaTitle: deriveSeo(c.nombre, null).metaTitle },
       }),
     ),
     ...avisos.map((a) =>
@@ -279,8 +301,20 @@ async function main() {
         data: { needsReview: a.needsReview, reviewNote: a.reviewNote },
       }),
     ),
+    ...resumenes.map((r) =>
+      prisma.product.update({
+        where: { id: r.id },
+        data: {
+          shortDescription: r.shortDescription,
+          ...deriveSeo(r.shortDescription, r.shortDescription),
+        },
+      }),
+    ),
   ]);
-  console.log(`\nListo: ${cambios.length} nombres reescritos, ${avisos.length} avisos de revisión al día.`);
+  console.log(
+    `\nListo: ${cambios.length} nombres reescritos, ${avisos.length} avisos de revisión al día, ` +
+      `${resumenes.length} descripciones cortas.`,
+  );
 }
 
 /// La tabla que se le manda al cliente: las 331 filas, antes y despues, con

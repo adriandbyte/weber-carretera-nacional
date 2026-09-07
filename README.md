@@ -139,6 +139,14 @@ quedan repetidos entre dos SKU, que en la tienda serían indistinguibles.
 filas, antes y después, lo que quedó pendiente y dos columnas vacías para que el
 cliente marque lo que no le guste.
 
+El script también deja **la descripción corta igual que el nombre**, por
+decisión del cliente: sin ella no se puede publicar, y prefiere no detener el
+catálogo redactando 331 resúmenes. Es provisional y se reconoce por ser idéntica
+al nombre, así que en cuanto alguien escriba una de verdad el script deja de
+tocarla. El `metaDescription` que sale de ahí queda igual que el `metaTitle`: no
+penaliza, pero desperdicia la línea de abajo del resultado de Google, y es lo
+primero que hay que rehacer cuando lleguen las descripciones.
+
 ## Imágenes
 
 Hay dos almacenamientos detrás de la misma interfaz, y se elige solo según haya
@@ -207,6 +215,9 @@ decisión vive en `isInStore()` y tiene pruebas.
 - 38 productos marcados para revisión: 18 con un nombre que propuse yo y está
   sin confirmar, 14 porque el nombre depende de las abreviaturas `FT` y `CS`, y
   el resto por traducción o nombre pendiente
+- 331 con descripción corta, que hoy repite el nombre. Con eso ya no queda
+  ningún pendiente que impida publicar: falta la descripción completa en los
+  331 y una imagen en 22, y ninguna de las dos bloquea
 - 7 nombres quedan repetidos entre dos SKU. Cinco son los pares que el cliente
   ya está revisando; los otros dos los descubrió el generador: el Genesis S-435
   está dos veces (`36400001` y `36400043`, uno era el de Tailandia) y el
