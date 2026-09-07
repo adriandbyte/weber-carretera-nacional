@@ -103,6 +103,42 @@ Los precios de Weber México ya vienen con IVA y son el precio final: se guardan
 tal cual y la tienda no calcula impuestos. `compareAtPrice` queda vacío a
 propósito, porque no hay precio de promoción fijo; las ofertas son de temporada.
 
+### Nombres comerciales
+
+```bash
+pnpm db:nombres                     # vista previa, no toca nada
+pnpm db:nombres -- --tabla          # escribe la tabla de revisión en Excel
+pnpm db:nombres -- --aplicar        # lo escribe en la base
+```
+
+El inventario de Weber no trae nombres de venta, trae claves de almacén
+(`Q1200N MDNT BLK USA/CA/MX`). Este script las convierte aplicando el criterio
+que el cliente aprobó en el cuestionario del catálogo, con dos plantillas:
+
+```
+Equipo      Tipo [Formato] de Combustible Weber Serie Modelo [Medida][, Color]
+            Asador Portátil de Gas Weber Q1200, Negro
+Accesorio   Sustantivo Weber [Línea] [para Equipo] [Cantidad]
+            Funda Premium Weber para Asador Genesis Serie 300
+```
+
+El nombre propuesto se calcula **siempre desde el Excel de inventario**, nunca
+desde lo que hay en la base. Es lo que permite repetir el ciclo: el cliente
+corrige la tabla, se ajusta la regla en `scripts/lib/nombres.ts`, se vuelve a
+correr, y el resultado depende solo de la regla y del archivo. Correrlo dos
+veces seguidas no cambia nada.
+
+Un nombre editado a mano en el panel no se toca: se reporta y se salta.
+
+Nada se adivina. Un accesorio cuyo sustantivo no está en el diccionario de
+frases se queda como estaba y sale marcado, porque traducir palabra por palabra
+da nombres que nadie firmaría. El script también avisa de los nombres que
+quedan repetidos entre dos SKU, que en la tienda serían indistinguibles.
+
+`--tabla` escribe `data/salidas/Nombres propuestos - Weber.xlsx` con las 331
+filas, antes y después, lo que quedó pendiente y dos columnas vacías para que el
+cliente marque lo que no le guste.
+
 ## Imágenes
 
 Hay dos almacenamientos detrás de la misma interfaz, y se elige solo según haya
@@ -164,8 +200,17 @@ decisión vive en `isInStore()` y tiene pruebas.
   filtro *Sin imagen* en vez de dejar un hueco gris en la tienda
 - 201 de las 318 miden menos de 400 px de ancho: sirven de miniatura, no de
   imagen de ficha
-- 104 productos marcados para revisión, todos por nombre en mayúsculas que hay
-  que redactar para la tienda
+- 170 nombres redactados con el criterio del cuestionario; 324 de los 331 tienen
+  nombre de venta. Los 7 restantes son 4 paquetes de la Grill Academy, cuyo
+  nombre es una lista de SKU, y 3 productos cuyo nombre en español hay que
+  decidir con el cliente
+- 38 productos marcados para revisión: 18 con un nombre que propuse yo y está
+  sin confirmar, 14 porque el nombre depende de las abreviaturas `FT` y `CS`, y
+  el resto por traducción o nombre pendiente
+- 7 nombres quedan repetidos entre dos SKU. Cinco son los pares que el cliente
+  ya está revisando; los otros dos los descubrió el generador: el Genesis S-435
+  está dos veces (`36400001` y `36400043`, uno era el de Tailandia) y el
+  abrillantador de acero inoxidable tres (`6271`, `8029`, `8039`)
 - 317 productos con precio de la lista 2026. Los 14 sin precio son 9 paquetes
   de la Grill Academy, 2 tanques de gas y 2 cajas de bolsas de marketing, que
   no vienen en la lista
