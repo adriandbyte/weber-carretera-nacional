@@ -277,21 +277,30 @@ const COLORES: { patron: RegExp; slug: string; m: string; f: string }[] = [
   { patron: /\bDEEP OCEAN BLUE\b/i, slug: 'deep-ocean-blue', m: 'Azul Deep Ocean', f: 'Azul Deep Ocean' },
   { patron: /\b(DEEP )?SLATE BLUE\b/i, slug: 'slate-blue', m: 'Azul Slate', f: 'Azul Slate' },
   { patron: /\bNEGRO MATE\b|\bMATTE BLACK\b/i, slug: 'negro-mate', m: 'Negro Mate', f: 'Negra Mate' },
-  { patron: /\bFLAME RED\b/i, slug: 'rojo', m: 'Rojo Carmesí', f: 'Roja Carmesí' },
+  // Los tres colores de la generacion nueva del Q1200 se respetan con su
+  // nombre oficial, como los escribio el cliente el 2026-09-07: "Midnight
+  // Black, Flame Red y Charcoal Grey, modelos nuevos que acaba de sacar Weber".
+  //
+  // En el cuestionario habia contestado "Rojo Carmesi" y "Grey", y su ejemplo
+  // del Q1200 dejaba MDNT BLK en "Negro". Manda lo ultimo que dijo, y ademas
+  // hace falta: el Q1200 negro existe en las dos generaciones a dos precios
+  // distintos, y llamar "Negro" a los dos deja dos productos con el mismo
+  // nombre y $500 de diferencia.
+  { patron: /\bFLAME RED\b/i, slug: 'flame-red', m: 'Flame Red', f: 'Flame Red' },
+  { patron: /\bCH GREY\b|\bCHARCOAL GREY\b/i, slug: 'charcoal-grey', m: 'Charcoal Grey', f: 'Charcoal Grey' },
   { patron: /\b(DEEP )?SMOKE\b|\bSMK GREY\b/i, slug: 'smoke', m: 'Humo', f: 'Humo' },
-  { patron: /\bCH GREY\b/i, slug: 'ch-grey', m: 'Grey', f: 'Grey' },
+  { patron: /\bTITANIO\b|\bTITANIUM\b/i, slug: 'titanio', m: 'Titanio', f: 'Titanio' },
   { patron: /\bSPRING GREEN\b/i, slug: 'spring-green', m: 'Verde', f: 'Verde' },
   { patron: /\bICE BLUE\b/i, slug: 'azul', m: 'Azul Hielo', f: 'Azul Hielo' },
   { patron: /\bIVORY\b/i, slug: 'ivory', m: 'Marfil', f: 'Marfil' },
   { patron: /\bCRIMSON\b/i, slug: 'crimson', m: 'Crimson', f: 'Crimson' },
   { patron: /\bCOBRE\b|\bCOPPER\b/i, slug: 'cobre', m: 'Cobre', f: 'Cobre' },
   { patron: /\bVERDE\b|\bGREEN\b/i, slug: 'verde', m: 'Verde', f: 'Verde' },
+  { patron: /\bNARANJA\b|\bORANGE\b/i, slug: 'naranja', m: 'Naranja', f: 'Naranja' },
   { patron: /\bROJO\b|\bRED\b/i, slug: 'rojo', m: 'Rojo', f: 'Roja' },
   { patron: /\bAZUL\b|\bBLUE\b/i, slug: 'azul', m: 'Azul', f: 'Azul' },
   { patron: /\bSS\b|\bSTAINLESS STEEL\b|\bINOXIDABLE\b/i, slug: 'acero-inoxidable', m: 'Acero Inoxidable', f: 'Acero Inoxidable' },
-  // MDNT BLK es "Midnight Black" en el almacen. El cliente lo dejo en Negro en
-  // su propio ejemplo del Q1200, asi que Midnight no llega al nombre.
-  { patron: /\bMDNT\b|\bMIDNIGHT\b/i, slug: 'negro', m: 'Negro', f: 'Negra' },
+  { patron: /\bMDNT( BLK)?\b|\bMIDNIGHT( BLACK)?\b/i, slug: 'midnight-black', m: 'Midnight Black', f: 'Midnight Black' },
   { patron: /\bBLK\b|\bBLACK\b|\bNEGRO\b/i, slug: 'negro', m: 'Negro', f: 'Negra' },
 ];
 

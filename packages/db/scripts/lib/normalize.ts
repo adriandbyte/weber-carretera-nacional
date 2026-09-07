@@ -227,6 +227,12 @@ export function resolveFormat(row: RawRow, productType: string): string | null {
   if (haystack.includes('empotrable') || /\bsb\d{2}\b/.test(haystack)) return 'empotrable';
   if (haystack.includes('portatil') || haystack.includes('portable')) return 'portatil';
   if (haystack.includes('con carro') || haystack.includes('cart')) return 'de-carro';
+
+  // Los Q chicos son de mesa y los grandes van con carro. Lo dice el modelo y
+  // no la categoria, y hace falta para lo que entra por la lista de precios:
+  // ahi no hay columna de formato, asi que el mismo Q1200 salia portatil desde
+  // el inventario y sin formato desde la lista, con dos nombres distintos.
+  if (/\bq\s?(1000|1200|2200)n?\b/.test(haystack)) return 'portatil';
   return null;
 }
 
@@ -249,6 +255,23 @@ export const COLORS: ColorDef[] = [
     hex: '#2B2B2B',
     patterns: ['negro mate', 'matte black'],
   },
+  // Los tres colores de la generacion nueva del Q1200, con el nombre oficial
+  // que dio el cliente el 2026-09-07. Van antes que negro y rojo porque son
+  // mas especificos: "MDNT BLK" tiene que caer aqui y no en negro.
+  {
+    slug: 'midnight-black',
+    name: 'Midnight Black',
+    hex: '#141618',
+    patterns: ['midnight black', 'midnight', 'mdnt'],
+  },
+  { slug: 'flame-red', name: 'Flame Red', hex: '#C0281F', patterns: ['flame red'] },
+  {
+    slug: 'charcoal-grey',
+    name: 'Charcoal Grey',
+    hex: '#4A4A4A',
+    patterns: ['charcoal grey', 'ch grey'],
+  },
+  { slug: 'titanio', name: 'Titanio', hex: '#8E8E90', patterns: ['titanio', 'titanium'] },
   { slug: 'negro', name: 'Negro', hex: '#1A1A1A', patterns: ['negro', 'black', ' blk'] },
   { slug: 'crimson', name: 'Crimson', hex: '#8C1D1D', patterns: ['crimson'] },
   { slug: 'ivory', name: 'Ivory', hex: '#EFE6D5', patterns: ['ivory', 'marfil'] },
@@ -281,7 +304,20 @@ export const COLORS: ColorDef[] = [
 /// positivos: "Smokey Joe" no es color humo, "Deep Ocean Blue" si es azul.
 const SERIES_WORDS = SERIES.flatMap((s) => s.patterns).concat(['smokey', 'joe']);
 
+/// Color de los productos cuyo nombre no lo dice, y que solo se sabe porque el
+/// cliente lo dijo.
+///
+/// El Q1200 titanio se llama "Asador Weber Q1200" a secas en la lista de
+/// precios, sin color, y es de los cuatro vigentes de esa generacion
+/// (2026-09-07). Sin esto se queda sin color y su nombre no lo distingue de sus
+/// hermanos, que es justo lo que separa un Q1200 de otro: el color, y con el
+/// color el precio.
+const COLOR_POR_SKU = new Map([['51060001', 'titanio']]);
+
 export function resolveColor(row: RawRow, productType: string): string | null {
+  const dicho = COLOR_POR_SKU.get(row.sku);
+  if (dicho) return dicho;
+
   // El color de una espatula no le importa a nadie; solo se captura en
   // equipos, donde es criterio real de compra.
   if (!EQUIPMENT_TYPES.includes(productType)) return null;

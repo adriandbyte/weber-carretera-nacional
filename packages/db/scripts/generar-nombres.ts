@@ -5,6 +5,7 @@
 //   pnpm db:nombres                 muestra que cambiaria, sin tocar nada
 //   pnpm db:nombres --tabla         escribe la tabla de revision en Excel
 //   pnpm db:nombres --aplicar       lo escribe en la base
+//   pnpm db:nombres --rehacer       reescribe tambien lo que parezca hecho a mano
 //
 // Las reglas viven en lib/nombres.ts. Aqui solo esta el recorrido del catalogo,
 // el desempate de URLs y la tabla que se le manda al cliente.
@@ -16,7 +17,13 @@
 // haya corrido antes. Generando sobre la base, la segunda pasada leia sus
 // propios nombres y los desarmaba.
 //
-// Un nombre editado a mano en el panel no se toca: se reporta y se salta.
+// Un nombre editado a mano en el panel no se toca: se reporta y se salta. Que
+// este "a mano" se deduce de que no sea ni el del inventario ni el que produce
+// la regla, y eso incluye un caso que no es una edicion: los nombres que dejo
+// una version anterior de la regla. Cuando se cambia el diccionario -el cliente
+// corrigio un color, por ejemplo- esos nombres dejan de reconocerse como
+// propios. Para eso esta --rehacer, que los reescribe igual; sigue reportandolos
+// para que se vea a quien se le paso encima.
 //
 // Sin --aplicar no escribe nada: el nombre es la direccion publica del producto
 // y la tabla se revisa antes de mover 100 URLs de golpe.
@@ -39,6 +46,7 @@ const INVENTARIO = path.join(REPO_ROOT, 'data/fuentes/Base de Datos Inventario.x
 
 const aplicar = process.argv.includes('--aplicar');
 const conTabla = process.argv.includes('--tabla');
+const rehacer = process.argv.includes('--rehacer');
 
 /// Sin espacios de sobra ni saltos de linea: el Excel los trae y no dicen nada.
 const plano = (texto: string): string => texto.replace(/\s+/g, ' ').trim();
@@ -87,6 +95,8 @@ async function main() {
   /// Productos que no vienen del inventario, y que por lo tanto no le tocan a
   /// este script.
   const ajenos: string[] = [];
+  /// Los que no se reconocian y se reescriben porque se paso --rehacer.
+  const rehechos: string[] = [];
   const resumenes: { id: string; sku: string; shortDescription: string }[] = [];
 
   // El desempate de URLs necesita saber que slugs estan tomados, y los que
@@ -149,10 +159,13 @@ async function main() {
     // La comparacion ignora espacios de sobra, que los trae el Excel y no
     // significan nada.
     const igual = (a: string, b: string) => plano(a) === plano(b);
-    const editadoAMano =
+    const noReconocido =
       !igual(producto.name, propuesto) &&
       !igual(producto.name, original) &&
       !igual(producto.name, quitarPuntoFinal(original));
+    const editadoAMano = noReconocido && !rehacer;
+
+    if (noReconocido && rehacer) rehechos.push(producto.sku);
 
     filas.push({
       sku: producto.sku,
@@ -296,6 +309,11 @@ async function main() {
   if (aMano.length > 0) {
     console.log('\nEditados a mano en el panel, no se tocan:');
     for (const fila of aMano) console.log(`  ${fila.sku.padEnd(10)} ${fila.nombrePropuesto}`);
+    console.log('  Para reescribirlos igual: pnpm db:nombres -- --rehacer');
+  }
+  if (rehacer && rehechos.length > 0) {
+    console.log(`\n${rehechos.length} nombres no se reconocian y se reescriben por --rehacer:`);
+    for (const sku of rehechos) console.log(`  ${sku}`);
   }
 
   if (conTabla) await escribirTabla(filas, repetidos);

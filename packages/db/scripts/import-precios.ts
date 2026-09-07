@@ -27,11 +27,15 @@
 // errata de captura, y solo quien mira las dos listas puede saberlo: sin la
 // bandera se reportan y no se toca nada.
 //
+// El alta corre una sola vez por producto: si despues cambia una regla de
+// clasificacion o de nombre, lo que ya existe no se vuelve a calcular, y hay que
+// borrarlo para que se de de alta otra vez.
+//
 // El alta se clasifica con la columna de categoria de la propia lista, que
-// habla el mismo vocabulario que el inventario ("GAS Q", "CHARCOAL Performer").
-// Trae menos informacion: el inventario tiene dos columnas de categoria y esta
-// una, asi que el formato y la subcategoria salen vacios y el producto queda
-// marcado para revisar. El nombre entra tal como viene en la lista.
+// habla el mismo vocabulario que el inventario ("GAS Q", "CHARCOAL Performer"),
+// y su nombre se redacta con las mismas reglas que el resto del catalogo. Trae
+// menos informacion -el inventario tiene dos columnas de categoria y esta una-,
+// asi que el producto queda marcado para revisar.
 //
 // Nada se publica solo. Un producto pasa de borrador a activo unicamente
 // con --publicar, y aun asi solo si quedo con precio mayor a cero.
@@ -41,7 +45,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ExcelJS from 'exceljs';
 import { prisma, Prisma } from '../src/index.js';
-import { fold, normalizeRow } from './lib/normalize.js';
+import { fold, normalizeRow, slugify } from './lib/normalize.js';
+import { generarNombre } from './lib/nombres.js';
 import { seedCatalogs } from './lib/catalogs.js';
 import { deriveSeo } from '../../core/src/format.js';
 
@@ -136,26 +141,41 @@ async function alta(
 ): Promise<string> {
   const normalizado = normalizeRow({ sku, name: nombre, categoryD: categoria, categoryE: null });
 
+  // El nombre se redacta con las mismas reglas que el resto del catalogo. Si se
+  // dejara el de la lista, el Q1200 que entra por aqui se llamaria "Asador
+  // Weber Q1200 NEGRO" al lado de un "Asador Portatil de Gas Weber Q1200,
+  // Midnight Black" que es su hermano de otro color.
+  const redactado = generarNombre({
+    sku,
+    name: nombre,
+    productTypeSlug: normalizado.productTypeSlug,
+    fuelTypeSlug: normalizado.fuelTypeSlug,
+    seriesSlug: normalizado.seriesSlug,
+    compatibleSeriesSlugs: normalizado.compatibleSeriesSlugs,
+    formatSlug: normalizado.formatSlug,
+    sizeName: null,
+    colorSlug: normalizado.colorSlug,
+  });
+  const comercial = redactado.nombre.replace(/\s+/g, ' ').trim() || nombre;
+
   const motivos = ['alta desde la lista de precios, falta confirmar la clasificación'];
   if (normalizado.reviewNote) motivos.push(normalizado.reviewNote);
+  for (const nota of redactado.notas) motivos.push(nota);
 
   /// El slug se desempata con el SKU igual que en el panel: dos productos
   /// pueden llamarse igual de forma legitima hasta que alguien los redacta.
-  const tomado = await prisma.product.findUnique({
-    where: { slug: normalizado.slug },
-    select: { id: true },
-  });
-  const slug =
-    !normalizado.slug || tomado ? `${normalizado.slug}-${sku.toLowerCase()}` : normalizado.slug;
+  const base = slugify(comercial);
+  const tomado = await prisma.product.findUnique({ where: { slug: base }, select: { id: true } });
+  const slug = !base || tomado ? `${base}-${sku.toLowerCase()}` : base;
 
   const producto = await prisma.product.create({
     data: {
       sku,
       slug,
-      name: nombre,
+      name: comercial,
       // La descripcion corta repite el nombre, como en el resto del catalogo:
       // sin ella no se puede publicar y el cliente prefirio no redactarlas.
-      shortDescription: nombre,
+      shortDescription: comercial,
       status: 'DRAFT',
       brandId: ids.brand,
       productTypeId: ids.productType.get(normalizado.productTypeSlug) ?? null,
@@ -163,12 +183,13 @@ async function alta(
         ? (ids.fuelType.get(normalizado.fuelTypeSlug) ?? null)
         : null,
       seriesId: normalizado.seriesSlug ? (ids.series.get(normalizado.seriesSlug) ?? null) : null,
+      formatId: normalizado.formatSlug ? (ids.format.get(normalizado.formatSlug) ?? null) : null,
       colorId: normalizado.colorSlug ? (ids.color.get(normalizado.colorSlug) ?? null) : null,
       sizeId: normalizado.sizeSlug ? (ids.size.get(normalizado.sizeSlug) ?? null) : null,
       rawCategory: categoria,
       needsReview: true,
       reviewNote: motivos.join('; '),
-      ...deriveSeo(nombre, nombre),
+      ...deriveSeo(comercial, comercial),
     },
   });
 

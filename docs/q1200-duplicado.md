@@ -1,5 +1,19 @@
 # El Q1200 está diez veces en la lista de precios
 
+> **CONTESTADO el 2026-09-07.** Es el mismo modelo: cambia el código según el
+> color, y con el color cambia el precio.
+>
+> **Vigentes a $7,499:** Titanio (`51060001`), Negro (`51010001`), Azul
+> (`51080001`) y Naranja (`51190001`).
+> **Modelos nuevos de Weber, a $6,999:** Midnight Black (`1502198`), Flame Red
+> (`1502230`) y Charcoal Grey (`1502231`).
+> **Deshabilitados:** los que no están en esa lista, que se pueden volver a
+> habilitar rápido si Weber los saca otra vez.
+>
+> Aplicado: los siete vigentes quedaron en borrador con su color y su precio, y
+> `51040001` (Rojo), `51070001` (Verde) y `1502199` (Humo) quedaron archivados.
+> Este documento se queda como registro de la pregunta.
+
 Una sola pregunta, y es de precio. Se contesta en dos minutos.
 
 En la **Lista de Precios 2026** el asador Q1200 aparece **diez veces**, en dos
