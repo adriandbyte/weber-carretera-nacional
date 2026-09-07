@@ -156,13 +156,19 @@ async function main() {
     // falta redaccion comercial"- deja de ser verdad en cuanto el nombre se
     // redacta, y el panel filtra por el. Se recalcula aqui: se quita ese
     // motivo, se conservan los demas y se añade lo que falte del nombre.
-    const otrosMotivos = (producto.reviewNote ?? '')
-      .split(';')
-      .map((m) => m.trim())
-      .filter((m) => m && !m.startsWith('Nombre en mayúsculas'));
-    const motivos = [...otrosMotivos, ...(editadoAMano ? [] : notas)];
+    // El aviso se reemplaza, no se acumula. Al concatenarlo con el que ya
+    // habia, cada corrida repetia los motivos y en la tercera el producto
+    // decia tres veces la misma cosa. Como el unico que escribe este campo es
+    // este script -y antes el importador, con un motivo que ya no es cierto-,
+    // lo que calcula ahora es la verdad completa.
+    // Una ficha escrita a mano tampoco se toca por aqui: quien la escribio
+    // decide tambien si sigue pendiente.
+    const motivos = [...new Set(notas)];
     const aviso = motivos.length > 0 ? motivos.join('; ') : null;
-    if (aviso !== producto.reviewNote || motivos.length > 0 !== producto.needsReview) {
+    if (
+      !editadoAMano &&
+      (aviso !== producto.reviewNote || (motivos.length > 0) !== producto.needsReview)
+    ) {
       avisos.push({ id: producto.id, needsReview: motivos.length > 0, reviewNote: aviso });
     }
 
