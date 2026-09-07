@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ImageOff, Plus, Search } from 'lucide-react';
 import { prisma, type Prisma } from '@weber/db';
 import { formatMoney, pluralize, STATUS_LABEL } from '@weber/core';
+import { PENDING_WHERE } from '@/lib/productos';
 import { Pagination } from '@/components/pagination';
 import { PageHeader } from '@/components/page-header';
 import { ProductTableSkeleton } from '@/components/skeletons';
@@ -30,20 +31,19 @@ export const dynamic = 'force-dynamic';
 
 const PAGE_SIZE = 50;
 
+/// Dos estados y no una lista de filtros: el catalogo completo, o lo que le
+/// falta algo.
+///
+/// Eran nueve, y tenian sentido cuando cada campo del catalogo estaba vacio en
+/// cientos de productos y habia que atacarlos por tandas. Con el catalogo
+/// cargado, siete de esos filtros devuelven cero o devuelven todo, y una fila
+/// de botones donde solo uno hace algo se lee como que el panel esta roto.
+///
+/// "Pendientes" es la misma condicion que cuenta la cabecera de la ficha y la
+/// misma que decide si un producto se puede publicar: PENDING_WHERE.
 const FILTERS: Record<string, { label: string; where: Prisma.ProductWhereInput }> = {
   todos: { label: 'Todos', where: {} },
-  revision: { label: 'Por revisar', where: { needsReview: true } },
-  listos: { label: 'Revisados', where: { needsReview: false } },
-  'sin-imagen': { label: 'Sin imagen', where: { images: { none: {} } } },
-  // La corta es la que impide publicar y la que se lee en las listas y en
-  // Google; la completa solo es recomendable. Estaban al reves: el filtro
-  // llamado "Sin descripción" miraba la completa, asi que mandaba a redactar
-  // fichas enteras antes que el campo que de verdad bloquea.
-  'sin-descripcion-corta': { label: 'Sin descripción corta', where: { shortDescription: null } },
-  'sin-descripcion': { label: 'Sin descripción larga', where: { description: null } },
-  'sin-categoria': { label: 'Sin categoría', where: { categories: { none: {} } } },
-  publicados: { label: 'Publicados', where: { status: 'ACTIVE' } },
-  borradores: { label: 'Borradores', where: { status: 'DRAFT' } },
+  pendientes: { label: 'Pendientes', where: PENDING_WHERE },
 };
 
 const SORTS: Record<string, { label: string; orderBy: Prisma.ProductOrderByWithRelationInput[] }> =
@@ -55,17 +55,24 @@ const SORTS: Record<string, { label: string; orderBy: Prisma.ProductOrderByWithR
   };
 
 /// El filtro y la busqueda, traducidos a una condicion de Prisma.
+///
+/// Se combinan con AND y no fundiendo los dos objetos: el filtro de pendientes
+/// ya usa OR por dentro, asi que al fundirlos la busqueda le pisaba ese OR y
+/// buscar dentro de "Pendientes" devolvia resultados de todo el catalogo.
 function buildWhere(filterKey: string, search: string): Prisma.ProductWhereInput {
+  const filtro = FILTERS[filterKey]!.where;
+  if (!search) return filtro;
+
   return {
-    ...FILTERS[filterKey]!.where,
-    ...(search
-      ? {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' as const } },
-            { sku: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {}),
+    AND: [
+      filtro,
+      {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' as const } },
+          { sku: { contains: search, mode: 'insensitive' as const } },
+        ],
+      },
+    ],
   };
 }
 
@@ -242,8 +249,8 @@ export default async function ProductosPage({
 }) {
   const params = await searchParams;
   const filterKey = params.filtro && params.filtro in FILTERS ? params.filtro : 'todos';
-  // Por nombre y no por "revisar primero": con 104 marcados, ese orden llenaba
-  // la primera pagina entera y parecia que no existian los demas productos.
+  // Por nombre y no por "revisar primero": ese orden llena la primera pagina
+  // con los marcados y parece que no existen los demas productos.
   const sortKey = params.orden && params.orden in SORTS ? params.orden : 'nombre';
   const search = params.q?.trim() ?? '';
   const page = Math.max(1, Number(params.pagina) || 1);
@@ -278,10 +285,9 @@ export default async function ProductosPage({
         }
       />
 
-      {/* Los filtros son navegacion, no un control de formulario: cada uno
-          tiene su URL. Por eso son enlaces con el aspecto de boton y no un
-          grupo de alternancia, que ademas perderia el poder abrirlos en otra
-          pestaña. */}
+      {/* Los dos son navegacion, no un control de formulario: cada uno tiene su
+          URL. Por eso son enlaces con el aspecto de boton y no un interruptor,
+          que ademas perderia el poder abrirlos en otra pestaña. */}
       <div className="flex flex-wrap items-center gap-1.5">
         {Object.entries(FILTERS).map(([key, filter]) => (
           <Button

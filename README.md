@@ -204,8 +204,8 @@ decisión vive en `isInStore()` y tiene pruebas.
 - 331 productos importados, todos en borrador
 - 318 imágenes extraídas, 309 SKU con imagen (22 sin ninguna)
 - 4 imágenes del Excel venían en formato EMF, que ningún navegador puede
-  mostrar: se ignoran en la importación para que esos productos aparezcan en el
-  filtro *Sin imagen* en vez de dejar un hueco gris en la tienda
+  mostrar: se ignoran en la importación para que esos productos cuenten como
+  *Sin imagen* en el resumen en vez de dejar un hueco gris en la tienda
 - 201 de las 318 miden menos de 400 px de ancho: sirven de miniatura, no de
   imagen de ficha
 - 170 nombres redactados con el criterio del cuestionario; 324 de los 331 tienen

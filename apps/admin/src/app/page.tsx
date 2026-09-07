@@ -76,34 +76,39 @@ export default async function DashboardPage() {
 
   // Cada tarjeta es un pendiente que impide publicar, en el orden en que
   // conviene atacarlos: primero lo que se redacta, luego lo que se clasifica.
+  //
+  // Las que llevan a la lista lo hacen al filtro de pendientes, que es donde
+  // caen todas: la lista ya no tiene un filtro por campo. La imagen no lleva a
+  // ninguna parte a proposito, porque no bloquea publicar y no esta en ese
+  // filtro; el numero informa y no manda a hacer nada todavia.
   const pendientes = [
     {
       label: 'Sin descripción corta',
       value: cuantosFalta('descripcion-corta'),
       icon: FileText,
-      href: '/productos?filtro=sin-descripcion-corta',
+      href: '/productos?filtro=pendientes',
       note: 'Es la que sale en las listas',
     },
     {
       label: 'Sin imagen',
       value: cuantosFalta('imagen'),
       icon: ImageOff,
-      href: '/productos?filtro=sin-imagen',
-      note: 'No venían en el Excel',
+      href: null,
+      note: 'Se suben con la tienda en línea',
     },
     {
       label: 'Sin categoría',
       value: cuantosFalta('categoria'),
       icon: FolderTree,
-      href: '/productos?filtro=sin-categoria',
+      href: '/productos?filtro=pendientes',
       note: 'No aparecen en ninguna sección',
     },
     {
       label: 'Por revisar',
       value: porRevisar,
       icon: PencilLine,
-      href: '/productos?filtro=revision',
-      note: 'Nombre crudo del sistema de Weber',
+      href: '/productos?filtro=pendientes',
+      note: 'Les falta algo o hay que confirmar el nombre',
     },
   ];
 
@@ -149,7 +154,7 @@ export default async function DashboardPage() {
 
           {porRevisar > 0 && (
             <Button asChild size="lg" className="mt-2">
-              <Link href="/productos?filtro=revision">
+              <Link href="/productos?filtro=pendientes">
                 Continuar revisando
                 <ArrowRight data-icon="inline-end" />
               </Link>
@@ -163,22 +168,34 @@ export default async function DashboardPage() {
           Qué falta
         </h2>
         <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {pendientes.map((item) => (
-            <li key={item.label}>
-              <Link href={item.href} className="group block h-full rounded-xl">
-                <Card className="group-hover:ring-primary/40 h-full transition-colors">
-                  <CardContent className="space-y-1">
-                    <item.icon className="text-muted-foreground size-4" />
-                    <span className="font-heading block text-2xl font-semibold tabular-nums">
-                      {item.value}
-                    </span>
-                    <span className="block font-medium">{item.label}</span>
-                    <span className="text-muted-foreground block text-xs">{item.note}</span>
-                  </CardContent>
-                </Card>
-              </Link>
-            </li>
-          ))}
+          {pendientes.map((item) => {
+            const tarjeta = (
+              <Card
+                className={`h-full ${item.href ? 'group-hover:ring-primary/40 transition-colors' : ''}`}
+              >
+                <CardContent className="space-y-1">
+                  <item.icon className="text-muted-foreground size-4" />
+                  <span className="font-heading block text-2xl font-semibold tabular-nums">
+                    {item.value}
+                  </span>
+                  <span className="block font-medium">{item.label}</span>
+                  <span className="text-muted-foreground block text-xs">{item.note}</span>
+                </CardContent>
+              </Card>
+            );
+
+            return (
+              <li key={item.label}>
+                {item.href ? (
+                  <Link href={item.href} className="group block h-full rounded-xl">
+                    {tarjeta}
+                  </Link>
+                ) : (
+                  tarjeta
+                )}
+              </li>
+            );
+          })}
         </ul>
       </section>
 
