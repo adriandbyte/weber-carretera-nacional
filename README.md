@@ -90,7 +90,8 @@ pnpm --filter @weber/db exec tsx scripts/analyze-inventario.ts
 ```bash
 pnpm import:precios                        # la lista vigente de data/fuentes
 pnpm import:precios -- ruta/a/otra.xlsx
-pnpm import:precios -- ruta/a/otra.xlsx --publicar
+pnpm import:precios -- --crear             # da de alta lo que falte
+pnpm import:precios -- --publicar
 ```
 
 Cruza por SKU. Detecta solo la fila de encabezados y los nombres de columna
@@ -102,6 +103,19 @@ con precio mayor a cero.
 Los precios de Weber México ya vienen con IVA y son el precio final: se guardan
 tal cual y la tienda no calcula impuestos. `compareAtPrice` queda vacío a
 propósito, porque no hay precio de promoción fijo; las ofertas son de temporada.
+
+Con `--crear`, los SKU de la lista que no existen en el catálogo se dan de alta
+como borrador. Es opt-in porque un SKU sin producto puede ser un alta o una
+errata de captura, y solo quien mira las dos listas puede saberlo: sin la
+bandera se reportan y no se toca nada.
+
+El alta se clasifica con el mismo normalizador que el inventario, usando la
+columna de categoría de la lista, que habla el mismo vocabulario (`GAS Q`,
+`CHARCOAL Performer`). Trae menos información -el inventario tiene dos columnas
+de categoría y la lista una-, así que el formato queda vacío y el producto sale
+marcado para revisar. El nombre entra tal como viene en la lista, sin pasar por
+el generador: `pnpm db:nombres` solo interpreta lo que está en el inventario y
+deja fuera a estos, para que los dos importadores no se pisen.
 
 ### Nombres comerciales
 
@@ -201,7 +215,8 @@ decisión vive en `isInStore()` y tiene pruebas.
 
 ## Estado actual
 
-- 331 productos importados, todos en borrador
+- 341 productos: 331 del inventario y 10 dados de alta desde la lista de
+  precios 2026, que estaban ahí y no en el inventario
 - 318 imágenes extraídas, 309 SKU con imagen (22 sin ninguna)
 - 4 imágenes del Excel venían en formato EMF, que ningún navegador puede
   mostrar: se ignoran en la importación para que esos productos cuenten como
@@ -215,8 +230,12 @@ decisión vive en `isInStore()` y tiene pruebas.
 - 10 paquetes archivados por decisión del cliente: no los quiere en la tienda
   por ahora. Archivados y no borrados, porque su nombre trae la receta de lo que
   incluyen y recuperar eso significaría volver al Excel
-- 4 productos pendientes: 3 cuyo nombre en español hay que decidir y el Summit
-  Kamado S6, que necesita traducir `Grill Center`
+- 14 productos pendientes: los 10 dados de alta desde la lista de precios, que
+  necesitan que alguien confirme su clasificación, más 3 cuyo nombre en español
+  hay que decidir y el Summit Kamado S6, que necesita traducir `Grill Center`
+- El Q1200 quedó diez veces en el catálogo, como en la lista de precios: 4 con
+  el esquema de SKU nuevo a $6,999 y 6 con el viejo a $7,499. Hay que preguntar
+  cuál generación se vende antes de publicar cualquiera de las dos
 - 331 con descripción corta, que hoy repite el nombre. Con eso ya no queda
   ningún pendiente que impida publicar: falta la descripción completa en los
   331 y una imagen en 22, y ninguna de las dos bloquea
@@ -224,9 +243,9 @@ decisión vive en `isInStore()` y tiene pruebas.
   ya está revisando; los otros dos los descubrió el generador: el Genesis S-435
   está dos veces (`36400001` y `36400043`, uno era el de Tailandia) y el
   abrillantador de acero inoxidable tres (`6271`, `8029`, `8039`)
-- 317 productos con precio de la lista 2026. Los 14 sin precio son los 10
-  paquetes -ninguno viene en la lista, y ya están archivados-, 2 tanques de gas
-  y 2 cajas de bolsas de marketing
+- 327 productos con precio, uno por cada fila de la lista 2026. Los 14 sin
+  precio son los 10 paquetes -ninguno viene en la lista, y ya están
+  archivados-, 2 tanques de gas y 2 cajas de bolsas de marketing
 - 10 SKU de la lista no existen en el inventario: los 6 Q1200 con el esquema de
   SKU viejo, más cuatro productos nuevos (Spirit SB-E-425, funda Smoque 22",
   tabla Weber Works Smoke y mesa lateral de Kettle 18"/22")

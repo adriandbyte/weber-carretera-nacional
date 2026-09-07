@@ -96,7 +96,12 @@ export function resolveProductType(row: RawRow): string {
   // "Funda para plancha" no es una plancha.
   if (e.includes('ahumador')) return 'ahumador';
   if (d.includes('griddle') || e.includes('plancha')) return 'plancha';
-  if (d.includes('accesorio') || e.includes('accesorio')) return 'accesorio';
+  // "accessory" con dos eses es como lo escribe la lista de precios, donde el
+  // inventario pone "ACCESORIOS". Sin la variante inglesa, una mesa lateral
+  // cae en el ultimo caso de esta funcion y sale clasificada como asador.
+  if (['accesorio', 'accessory', 'accesory'].some((p) => d.includes(p) || e.includes(p))) {
+    return 'accesorio';
+  }
 
   // Ya sin columnas que consultar, el nombre es lo unico que queda.
   if (name.includes('ahumador') || name.includes('smoker')) return 'ahumador';
@@ -258,6 +263,9 @@ export const COLORS: ColorDef[] = [
   },
   { slug: 'cobre', name: 'Cobre', hex: '#A65E2E', patterns: ['cobre', 'copper'] },
   { slug: 'verde', name: 'Verde', hex: '#2F5D3A', patterns: ['verde', 'green'] },
+  // El naranja solo existe en la generacion vieja del Q1200, la que vino de la
+  // lista de precios y no del inventario.
+  { slug: 'naranja', name: 'Naranja', hex: '#C1622B', patterns: ['naranja', 'orange'] },
   { slug: 'rojo', name: 'Rojo', hex: '#B3261E', patterns: ['rojo', 'red'] },
   { slug: 'azul', name: 'Azul', hex: '#1E4E8C', patterns: ['azul', 'blue'] },
   {

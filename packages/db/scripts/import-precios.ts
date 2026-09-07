@@ -3,6 +3,7 @@
 //
 //   pnpm import:precios                        usa la lista vigente
 //   pnpm import:precios -- ruta/a/otra.xlsx     usa otro archivo
+//   pnpm import:precios -- --crear              da de alta lo que falte
 //
 // Se separa del importador de inventario a proposito: la lista de precios
 // llega despues y se va a actualizar muchas mas veces que el catalogo.
@@ -21,6 +22,17 @@
 // Los precios de Weber Mexico ya vienen con IVA: son el precio final que ve
 // el cliente, asi que se guardan tal cual y la tienda no calcula impuestos.
 //
+// Con --crear, los SKU de la lista que no existen en el catalogo se dan de alta
+// como borrador. Es opt-in porque un SKU sin producto puede ser un alta o una
+// errata de captura, y solo quien mira las dos listas puede saberlo: sin la
+// bandera se reportan y no se toca nada.
+//
+// El alta se clasifica con la columna de categoria de la propia lista, que
+// habla el mismo vocabulario que el inventario ("GAS Q", "CHARCOAL Performer").
+// Trae menos informacion: el inventario tiene dos columnas de categoria y esta
+// una, asi que el formato y la subcategoria salen vacios y el producto queda
+// marcado para revisar. El nombre entra tal como viene en la lista.
+//
 // Nada se publica solo. Un producto pasa de borrador a activo unicamente
 // con --publicar, y aun asi solo si quedo con precio mayor a cero.
 // ---------------------------------------------------------------------------
@@ -29,7 +41,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ExcelJS from 'exceljs';
 import { prisma, Prisma } from '../src/index.js';
-import { fold } from './lib/normalize.js';
+import { fold, normalizeRow } from './lib/normalize.js';
+import { seedCatalogs } from './lib/catalogs.js';
+import { deriveSeo } from '../../core/src/format.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(here, '../../..');
@@ -37,6 +51,8 @@ const DEFAULT_FILE = path.join(REPO_ROOT, 'data/fuentes/Lista de Precios 2026 - 
 
 const HEADERS = {
   sku: ['sku', 'codigo', 'clave', 'articulo', 'modelo', 'no. parte', 'no parte', 'numero de parte'],
+  name: ['descripcion', 'producto', 'nombre', 'description'],
+  category: ['categoria', 'category', 'linea'],
   // "map" es el precio minimo que Weber autoriza a publicar, y es el que la
   // marca manda en su lista anual. Viene con el año pegado ("MAP 2026"), asi
   // que se reconoce por prefijo y la lista del año que entre sirve igual.
@@ -53,6 +69,8 @@ type Field = keyof typeof HEADERS;
 function mapColumns(headerRow: ExcelJS.Row): Record<Field, number | null> {
   const found: Record<Field, number | null> = {
     sku: null,
+    name: null,
+    category: null,
     price: null,
     compareAt: null,
     cost: null,
@@ -95,9 +113,86 @@ function parseInteger(value: ExcelJS.CellValue): number | null {
   return Number.isFinite(parsed) ? Math.trunc(parsed) : null;
 }
 
+/// La categoria de la fila, que es lo que clasifica el producto al darlo de alta.
+function categoriaDe(row: ExcelJS.Row, columns: Record<Field, number | null>): string | null {
+  if (!columns.category) return null;
+  const texto = String(row.getCell(columns.category).value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return texto || null;
+}
+
+/// Da de alta un producto que esta en la lista de precios y no en el catalogo.
+///
+/// Reusa el mismo normalizador que el importador de inventario, con la columna
+/// de categoria de la lista en lugar de las dos del Excel de inventario. Sale
+/// siempre marcado para revisar: la clasificacion viene de menos informacion
+/// que la del resto del catalogo y alguien tiene que confirmarla.
+async function alta(
+  sku: string,
+  nombre: string,
+  categoria: string | null,
+  ids: Awaited<ReturnType<typeof seedCatalogs>>,
+): Promise<string> {
+  const normalizado = normalizeRow({ sku, name: nombre, categoryD: categoria, categoryE: null });
+
+  const motivos = ['alta desde la lista de precios, falta confirmar la clasificación'];
+  if (normalizado.reviewNote) motivos.push(normalizado.reviewNote);
+
+  /// El slug se desempata con el SKU igual que en el panel: dos productos
+  /// pueden llamarse igual de forma legitima hasta que alguien los redacta.
+  const tomado = await prisma.product.findUnique({
+    where: { slug: normalizado.slug },
+    select: { id: true },
+  });
+  const slug =
+    !normalizado.slug || tomado ? `${normalizado.slug}-${sku.toLowerCase()}` : normalizado.slug;
+
+  const producto = await prisma.product.create({
+    data: {
+      sku,
+      slug,
+      name: nombre,
+      // La descripcion corta repite el nombre, como en el resto del catalogo:
+      // sin ella no se puede publicar y el cliente prefirio no redactarlas.
+      shortDescription: nombre,
+      status: 'DRAFT',
+      brandId: ids.brand,
+      productTypeId: ids.productType.get(normalizado.productTypeSlug) ?? null,
+      fuelTypeId: normalizado.fuelTypeSlug
+        ? (ids.fuelType.get(normalizado.fuelTypeSlug) ?? null)
+        : null,
+      seriesId: normalizado.seriesSlug ? (ids.series.get(normalizado.seriesSlug) ?? null) : null,
+      colorId: normalizado.colorSlug ? (ids.color.get(normalizado.colorSlug) ?? null) : null,
+      sizeId: normalizado.sizeSlug ? (ids.size.get(normalizado.sizeSlug) ?? null) : null,
+      rawCategory: categoria,
+      needsReview: true,
+      reviewNote: motivos.join('; '),
+      ...deriveSeo(nombre, nombre),
+    },
+  });
+
+  for (const [index, slugCategoria] of normalizado.categorySlugs.entries()) {
+    const categoryId = ids.category.get(slugCategoria);
+    if (!categoryId) continue;
+    await prisma.productCategory.create({
+      data: { productId: producto.id, categoryId, isPrimary: index === 0, position: index },
+    });
+  }
+
+  for (const slugSerie of normalizado.compatibleSeriesSlugs) {
+    const seriesId = ids.series.get(slugSerie);
+    if (!seriesId) continue;
+    await prisma.productCompatibility.create({ data: { productId: producto.id, seriesId } });
+  }
+
+  return producto.id;
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const publish = args.includes('--publicar');
+  const crear = args.includes('--crear');
   const file = args.find((arg) => !arg.startsWith('--')) ?? DEFAULT_FILE;
 
   const workbook = new ExcelJS.Workbook();
@@ -141,13 +236,28 @@ async function main() {
   let published = 0;
   const notFound: string[] = [];
   const noPrice: string[] = [];
+  const created: string[] = [];
+  const ids = crear ? await seedCatalogs(prisma) : null;
 
   for (let rowNumber = headerRowNumber + 1; rowNumber <= sheet.rowCount; rowNumber += 1) {
     const row = sheet.getRow(rowNumber);
     const sku = String(row.getCell(skuColumn).value ?? '').trim();
     if (!sku) continue;
 
-    const product = await prisma.product.findUnique({ where: { sku }, select: { id: true } });
+    let product = await prisma.product.findUnique({ where: { sku }, select: { id: true } });
+    if (!product && crear && ids) {
+      const nombre = columns.name
+        ? String(row.getCell(columns.name).value ?? '')
+            .replace(/\s+/g, ' ')
+            .trim()
+        : '';
+      if (!nombre) {
+        notFound.push(sku);
+        continue;
+      }
+      product = { id: await alta(sku, nombre, categoriaDe(row, columns), ids) };
+      created.push(sku);
+    }
     if (!product) {
       notFound.push(sku);
       continue;
@@ -187,6 +297,8 @@ async function main() {
 
   console.log('\nResumen');
   console.log(`  Precios aplicados:        ${matched}`);
+  console.log(`  Productos dados de alta:  ${created.length}${crear ? '' : ' (usa --crear)'}`);
+  if (created.length > 0) console.log(`    ${created.join(', ')}`);
   console.log(`  Publicados:               ${published}${publish ? '' : ' (usa --publicar)'}`);
   console.log(`  SKU sin producto:         ${notFound.length}`);
   if (notFound.length > 0) console.log(`    ${notFound.slice(0, 30).join(', ')}`);

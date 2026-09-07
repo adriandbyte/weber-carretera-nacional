@@ -84,6 +84,9 @@ async function main() {
   const filas: Fila[] = [];
   const cambios: { id: string; sku: string; nombre: string; slug: string; slugAnterior: string }[] = [];
   const avisos: { id: string; needsReview: boolean; reviewNote: string | null }[] = [];
+  /// Productos que no vienen del inventario, y que por lo tanto no le tocan a
+  /// este script.
+  const ajenos: string[] = [];
   const resumenes: { id: string; sku: string; shortDescription: string }[] = [];
 
   // El desempate de URLs necesita saber que slugs estan tomados, y los que
@@ -91,7 +94,16 @@ async function main() {
   const usados = new Set(productos.map((p) => p.slug));
 
   for (const producto of productos) {
-    const original = originalPorSku.get(producto.sku) ?? producto.name;
+    // Lo que no esta en el Excel de inventario no es asunto de este script. Los
+    // productos que dio de alta la lista de precios no tienen nombre original
+    // que interpretar -su nombre ES el de la lista- y su aviso de revision lo
+    // escribio el otro importador. Tocarlos seria pisarse entre los dos.
+    const original = originalPorSku.get(producto.sku);
+    if (original === undefined) {
+      ajenos.push(producto.sku);
+      continue;
+    }
+
     const esEquipo = ['asador', 'ahumador', 'plancha'].includes(producto.productType?.slug ?? '');
 
     // Tres caminos. El punto final sobra en cualquier idioma, asi que se le
@@ -256,6 +268,7 @@ async function main() {
   console.log(`  Marcados para revisión:    ${marcados.length}`);
   console.log(`  Avisos de revisión al día: ${avisos.length}`);
   console.log(`  Descripciones cortas:      ${resumenes.length}`);
+  console.log(`  Fuera del inventario:      ${ajenos.length}${ajenos.length > 0 ? ` (${ajenos.join(', ')})` : ''}`);
 
   if (sinPropuesta.length > 0) {
     console.log('\nSin nombre que proponer, se quedan como estaban:');
