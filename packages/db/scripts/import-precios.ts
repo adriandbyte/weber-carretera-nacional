@@ -187,7 +187,10 @@ async function alta(
       // La descripcion corta repite el nombre, como en el resto del catalogo:
       // sin ella no se puede publicar y el cliente prefirio no redactarlas.
       shortDescription: comercial,
-      status: 'DRAFT',
+      // El estado tambien lo decide el normalizador: entre lo que da de alta la
+      // lista hay dos Q1200 que el cliente saco del catalogo, y entrarian a la
+      // tienda si aqui se forzara "borrador".
+      status: normalizado.status,
       brandId: ids.brand,
       productTypeId: ids.productType.get(normalizado.productTypeSlug) ?? null,
       fuelTypeId: normalizado.fuelTypeSlug

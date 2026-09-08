@@ -66,6 +66,16 @@ export function slugify(value: string): string {
     .slice(0, 120);
 }
 
+/// Productos que el cliente saco del catalogo, y que no hay forma de deducir de
+/// ningun archivo: en el inventario y en la lista de precios siguen igual que
+/// los vigentes, con su precio y todo.
+///
+/// Los tres Q1200 que Weber ya no surte (2026-09-07): el rojo y el verde de la
+/// generacion vieja, y el Smoke Grey de la nueva. El cliente pidio poder
+/// habilitarlos rapido si vuelven a salir, asi que entran archivados y no
+/// borrados. Quitar un SKU de esta lista lo devuelve a borrador.
+const FUERA_DE_CATALOGO = new Set(['51040001', '51070001', '1502199']);
+
 // --- Tipo de producto ------------------------------------------------------
 
 /// Tipos que son equipo propiamente dicho. El resto son cosas que acompañan
@@ -446,6 +456,7 @@ export function normalizeRow(row: RawRow): NormalizedProduct {
   }
 
   const discontinued = fold(clean(row.categoryD)).includes('descontinuado');
+  const fueraDeCatalogo = FUERA_DE_CATALOGO.has(row.sku);
   // Weber prefija con "Marketing" el material que no se vende: las bolsas
   // ecologicas vienen por caja de 150 y 200 piezas y son las que la tienda
   // regala en el mostrador (confirmado por el cliente el 2026-09-07). Entran
@@ -477,7 +488,7 @@ export function normalizeRow(row: RawRow): NormalizedProduct {
     status:
       discontinued
         ? 'DISCONTINUED'
-        : productType === 'paquete' || deMostrador
+        : productType === 'paquete' || deMostrador || fueraDeCatalogo
           ? 'ARCHIVED'
           : 'DRAFT',
     needsReview: notes.length > 0,

@@ -213,6 +213,32 @@ disco y en la nube, así que sin esa comprobación el importador diría "322 ya
 existentes" con toda normalidad y las dejaría apuntando a una ruta muerta. La
 decisión vive en `isInStore()` y tiene pruebas.
 
+## Llevar el catálogo a otra base
+
+Todo el estado del catálogo se reproduce con cuatro comandos, en este orden. No
+hay ningún paso manual: las decisiones del cliente viven en el código, no en la
+base.
+
+```bash
+pnpm db:migrate              # crea las tablas
+pnpm import:inventario       # 331 productos, atributos e imágenes
+pnpm import:precios -- --crear   # precios, y da de alta los 10 que solo están en la lista
+pnpm db:nombres -- --aplicar     # nombres, descripción corta y avisos de revisión
+```
+
+El orden importa en los dos últimos: `db:nombres` recalcula el aviso de revisión
+de cada producto, y `import:inventario` lo vuelve a poner como venía del Excel.
+Si se corren al revés, quedan 103 productos diciendo "Nombre en mayúsculas,
+falta redacción comercial" sobre nombres que ya están redactados.
+
+Lo que **no** se reproduce y hay que resolver antes de un despliegue de verdad:
+
+| | |
+| --- | --- |
+| Base | Hoy es un contenedor local en el puerto 55432. Producción necesita `DATABASE_URL` y `DIRECT_URL` de un Postgres alcanzable |
+| Imágenes | Sin `BLOB_READ_WRITE_TOKEN` viven en `data/imagenes/` del disco que importó, así que en un despliegue esas URLs no resuelven. Hay que crear el Blob store **antes** de importar |
+| Panel | Sin `ADMIN_PASSWORD` el panel responde 503 en producción. Nunca queda abierto, pero tampoco entra nadie |
+
 ## Estado actual
 
 - 341 productos: 331 del inventario y 10 dados de alta desde la lista de
@@ -227,7 +253,7 @@ decisión vive en `isInStore()` y tiene pruebas.
   nombre de venta. Los 7 restantes son 4 paquetes de la Grill Academy, cuyo
   nombre es una lista de SKU, y 3 productos cuyo nombre en español hay que
   decidir con el cliente
-- 16 productos archivados: los 10 paquetes, 3 Q1200 de colores que Weber ya no
+- 15 productos archivados: los 10 paquetes, 3 Q1200 de colores que Weber ya no
   surte y 2 cajas de bolsas ecológicas, que son material de mostrador y no
   producto de tienda. Archivados y no borrados: se reactivan en un clic, y en el
   caso de los paquetes su nombre trae la receta de lo que incluyen
