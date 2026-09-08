@@ -60,6 +60,28 @@ const DEFAULT_FILE = path.join(REPO_ROOT, 'data/fuentes/Lista de Precios 2026 - 
 /// (2026-09-07: 400 gr $399, 10 kg $1,999). Se aplican solo si el producto
 /// sigue sin precio, asi que en cuanto Weber los meta en su lista, la lista
 /// manda y este mapa deja de hacer nada.
+/// Altas cuya clasificacion ya se reviso, asi que entran sin la marca de
+/// revision.
+///
+/// De los diez que dio de alta la lista 2026, nueve quedaron confirmados el
+/// 2026-09-07: los siete Q1200 -el cliente dijo que son el mismo modelo y que
+/// cambia el color y con el color el precio- y los tres accesorios, que se
+/// clasificaron igual que sus hermanos del inventario. El Spirit SB-E-425
+/// tambien: quedo con los mismos atributos que los otros cinco Spirit del
+/// catalogo, asi que marcarlo a el solo no le decia nada a nadie.
+const CLASIFICACION_REVISADA = new Set([
+  '17638',
+  '1501052',
+  '3400607',
+  '3400665',
+  '51010001',
+  '51040001',
+  '51060001',
+  '51070001',
+  '51080001',
+  '51190001',
+]);
+
 const PRECIOS_DICHOS = new Map([
   ['60006', '399'],
   ['60008', '1999'],
@@ -169,7 +191,9 @@ async function alta(
   });
   const comercial = redactado.nombre.replace(/\s+/g, ' ').trim() || nombre;
 
-  const motivos = ['alta desde la lista de precios, falta confirmar la clasificación'];
+  const motivos = CLASIFICACION_REVISADA.has(sku)
+    ? []
+    : ['alta desde la lista de precios, falta confirmar la clasificación'];
   if (normalizado.reviewNote) motivos.push(normalizado.reviewNote);
   for (const nota of redactado.notas) motivos.push(nota);
 
@@ -201,8 +225,8 @@ async function alta(
       colorId: normalizado.colorSlug ? (ids.color.get(normalizado.colorSlug) ?? null) : null,
       sizeId: normalizado.sizeSlug ? (ids.size.get(normalizado.sizeSlug) ?? null) : null,
       rawCategory: categoria,
-      needsReview: true,
-      reviewNote: motivos.join('; '),
+      needsReview: motivos.length > 0,
+      reviewNote: motivos.length > 0 ? motivos.join('; ') : null,
       ...deriveSeo(comercial, comercial),
     },
   });

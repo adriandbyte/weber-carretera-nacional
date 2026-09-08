@@ -257,9 +257,10 @@ Lo que **no** se reproduce y hay que resolver antes de un despliegue de verdad:
   surte y 2 cajas de bolsas ecológicas, que son material de mostrador y no
   producto de tienda. Archivados y no borrados: se reactivan en un clic, y en el
   caso de los paquetes su nombre trae la receta de lo que incluyen
-- 11 productos marcados para revisión: 8 dados de alta desde la lista de
-  precios, que solo necesitan que alguien confirme su clasificación, y 3 con un
-  nombre que propuse yo y está sin confirmar
+- **Cero pendientes.** Ningún producto activo arrastra un aviso de revisión ni
+  le falta nada de lo que impide publicar. Lo único abierto son los 7 nombres
+  repetidos, que el cliente está revisando: no son un campo vacío, son dos SKU
+  distintos que se llaman igual
 - El Q1200 quedó diez veces en el catálogo, como en la lista de precios: 4 con
   el esquema de SKU nuevo a $6,999 y 6 con el viejo a $7,499. Hay que preguntar
   cuál generación se vende antes de publicar cualquiera de las dos

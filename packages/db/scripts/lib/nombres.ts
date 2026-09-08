@@ -203,9 +203,14 @@ const FRASES: Map<string, { frase: string; propuesta?: boolean }> = new Map([
   }],
   ['TABLA MADERA', { frase: 'Tabla de Madera' }],
   ['CADDY WITH TRAY LID', { frase: 'Organizador con Tapa Bandeja' }],
+  ['MESA LATERAL Y KETTLE', { frase: 'Mesa Lateral {weber} para Asador de Carbón 18" y 22"' }],
+  ['PREMIUM GRILL COVER – SMOQUE', { frase: 'Funda Premium {weber} para Asador Smoque 22"' }],
+  // "Smoke" se queda tal como lo escribio Weber. En la lista de precios el
+  // asador de esta linea se llama "Smoque" y la tabla "Smoke", asi que uno de
+  // los dos trae una errata: mientras no se sepa cual, no se corrige ninguno.
+  ['TABLA LATERAL', { frase: 'Tabla Lateral {marca} Smoke' }],
   ['FUNDA PARA ASADOR A CARBÓN GRILL CENTER', {
     frase: 'Funda {marca} para Asador de Carbón Summit Kamado con Centro de Trabajo',
-    propuesta: true,
   }],
   // El nombre original es la lista de con que sirve, con un "Gril l/" partido a
   // la mitad: "Piedra para asar Spirit II 200/300 en adelante Asadores de
@@ -214,12 +219,8 @@ const FRASES: Map<string, { frase: string; propuesta?: boolean }> = new Map([
   // que es el producto.
   ['PIEDRA PARA ASAR II 200/300 EN ADELANTE ASADORES DE CARBÓN Y CHARCOAL GRIL L/ GRILLING CENTER', {
     frase: 'Piedra para Asar {marca} GBS',
-    propuesta: true,
   }],
-  ['GRILL & STATION PARRILLA,', {
-    frase: 'Estación {weber} para Asador y Plancha',
-    propuesta: true,
-  }],
+  ['GRILL & STATION PARRILLA,', { frase: 'Estación {weber} para Asador y Plancha' }],
   // Consumibles y refacciones
   ['PAQ 10 BANDEJAS RECOLECTORAS PELLET', {
     frase: 'Paquete de 10 Bandejas Recolectoras {marca} para Searwood y Summit',
