@@ -231,9 +231,9 @@ decisión vive en `isInStore()` y tiene pruebas.
   surte y 2 cajas de bolsas ecológicas, que son material de mostrador y no
   producto de tienda. Archivados y no borrados: se reactivan en un clic, y en el
   caso de los paquetes su nombre trae la receta de lo que incluyen
-- 14 productos pendientes: los 10 dados de alta desde la lista de precios, que
-  necesitan que alguien confirme su clasificación, más 3 cuyo nombre en español
-  hay que decidir y el Summit Kamado S6, que necesita traducir `Grill Center`
+- 11 productos marcados para revisión: 8 dados de alta desde la lista de
+  precios, que solo necesitan que alguien confirme su clasificación, y 3 con un
+  nombre que propuse yo y está sin confirmar
 - El Q1200 quedó diez veces en el catálogo, como en la lista de precios: 4 con
   el esquema de SKU nuevo a $6,999 y 6 con el viejo a $7,499. Hay que preguntar
   cuál generación se vende antes de publicar cualquiera de las dos
@@ -279,6 +279,7 @@ Lo comprueban la pantalla y el guardado con la misma regla, `findPending` en
 | --- | --- |
 | Nombre redactado, no el código de Weber | Descripción completa |
 | Descripción corta | Una imagen |
+| Precio | |
 | Al menos una categoría del menú | |
 | Tipo de producto | |
 

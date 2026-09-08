@@ -77,6 +77,7 @@ export default async function ProductoPage({ params }: { params: Promise<{ id: s
     name: product.name,
     shortDescription: product.shortDescription,
     description: product.description,
+    hasPrice: product.price !== null,
     imageCount: product.images.length,
     categoryCount: product.categories.length,
     hasProductType: product.productTypeId !== null,

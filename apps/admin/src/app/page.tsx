@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, FileText, FolderTree, ImageOff, PencilLine, Tags } from 'lucide-react';
+import { ArrowRight, FileText, FolderTree, ImageOff, PencilLine, Tag, Tags } from 'lucide-react';
 import { prisma } from '@weber/db';
 import { findPending, pluralize } from '@weber/core';
 import { PageHeader } from '@/components/page-header';
@@ -30,6 +30,7 @@ export default async function DashboardPage() {
         productTypeId: true,
         needsReview: true,
         status: true,
+        price: true,
         _count: { select: { images: true, categories: true } },
       },
     }),
@@ -60,6 +61,7 @@ export default async function DashboardPage() {
       name: producto.name,
       shortDescription: producto.shortDescription,
       description: producto.description,
+      hasPrice: producto.price !== null,
       imageCount: producto._count.images,
       categoryCount: producto._count.categories,
       hasProductType: producto.productTypeId !== null,
@@ -97,6 +99,13 @@ export default async function DashboardPage() {
       icon: FileText,
       href: '/productos?filtro=pendientes',
       note: 'Es la que sale en las listas',
+    },
+    {
+      label: 'Sin precio',
+      value: cuantosFalta('precio'),
+      icon: Tag,
+      href: '/productos?filtro=pendientes',
+      note: 'Sin precio no se puede vender',
     },
     {
       label: 'Sin imagen',
@@ -179,7 +188,7 @@ export default async function DashboardPage() {
         <h2 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
           Qué falta
         </h2>
-        <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {pendientes.map((item) => {
             const tarjeta = (
               <Card

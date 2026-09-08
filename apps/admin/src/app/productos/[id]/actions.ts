@@ -142,6 +142,9 @@ export async function saveProduct(
       name: data.name,
       shortDescription: data.shortDescription,
       description: data.description,
+      // El precio del formulario y no el de la base: es el que se esta
+      // guardando en esta misma accion.
+      hasPrice: data.price !== null,
       imageCount,
       categoryCount,
       hasProductType: data.productTypeId !== null,

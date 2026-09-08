@@ -25,6 +25,7 @@ export const PENDING_WHERE: Prisma.ProductWhereInput = {
   status: { notIn: ['ARCHIVED', 'DISCONTINUED'] },
   OR: [
     { needsReview: true },
+    { price: null },
     { shortDescription: null },
     { categories: { none: {} } },
     { productTypeId: null },

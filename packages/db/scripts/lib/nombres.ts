@@ -95,6 +95,10 @@ const TRADUCCIONES = new Map<string, string>([
   ['RUST-RESISTANT', 'Antioxidante'],
   ['RESISTANT', 'Antioxidante'],
   ['TABLETOP', 'de Mesa'],
+  // "Charcoal Grill Center" es el Kamado con su mesa de trabajo. Weber lo vende
+  // asi y el nombre tiene que decirlo, porque cuesta $20,000 mas que el Kamado
+  // solo. Va como propuesta hasta que el cliente lo confirme.
+  ['CENTER', 'con Centro de Trabajo'],
 ]);
 
 /// Palabras inglesas que hay que traducir, no capitalizar. Sirven de alarma:
@@ -199,6 +203,23 @@ const FRASES: Map<string, { frase: string; propuesta?: boolean }> = new Map([
   }],
   ['TABLA MADERA', { frase: 'Tabla de Madera' }],
   ['CADDY WITH TRAY LID', { frase: 'Organizador con Tapa Bandeja' }],
+  ['FUNDA PARA ASADOR A CARBÓN GRILL CENTER', {
+    frase: 'Funda {marca} para Asador de Carbón Summit Kamado con Centro de Trabajo',
+    propuesta: true,
+  }],
+  // El nombre original es la lista de con que sirve, con un "Gril l/" partido a
+  // la mitad: "Piedra para asar Spirit II 200/300 en adelante Asadores de
+  // carbon Original Kettle y Performer 22" Summit Charcoal Gril l/ Grilling
+  // Center". Esa lista es compatibilidad y ya vive en su tabla; el nombre dice
+  // que es el producto.
+  ['PIEDRA PARA ASAR II 200/300 EN ADELANTE ASADORES DE CARBÓN Y CHARCOAL GRIL L/ GRILLING CENTER', {
+    frase: 'Piedra para Asar {marca} GBS',
+    propuesta: true,
+  }],
+  ['GRILL & STATION PARRILLA,', {
+    frase: 'Estación {weber} para Asador y Plancha',
+    propuesta: true,
+  }],
   // Consumibles y refacciones
   ['PAQ 10 BANDEJAS RECOLECTORAS PELLET', {
     frase: 'Paquete de 10 Bandejas Recolectoras {marca} para Searwood y Summit',
@@ -672,10 +693,15 @@ function accesorio(producto: ProductoANombrar, d: Desmontado): NombreGenerado {
   // Searwood 600" tiene que ir en medio: el producto es una funda de Weber para
   // un ahumador, no una funda para un ahumador de Weber. En las frases que no
   // lo piden, la marca cierra el sustantivo: "Pala Weber Griddle".
+  // {marca} mete la marca con su linea -"Weber Griddle"-; {weber} solo la
+  // marca, para los productos que llevan la palabra Griddle en el nombre sin
+  // ser de esa linea, como la estacion para asador y plancha.
   const marca = ['Weber', ...d.lineas].join(' ');
-  let frase = entrada.frase.includes('{marca}')
-    ? entrada.frase.replace('{marca}', marca)
-    : `${entrada.frase} ${marca}`;
+  let frase = entrada.frase.includes('{weber}')
+    ? entrada.frase.replace('{weber}', 'Weber')
+    : entrada.frase.includes('{marca}')
+      ? entrada.frase.replace('{marca}', marca)
+      : `${entrada.frase} ${marca}`;
 
   // {equipo} marca donde va el equipo compatible cuando la frase no termina
   // ahi: "...de 7 mm Weber Crafted para Asador Genesis de 3 Quemadores".
