@@ -28,6 +28,8 @@ export interface ProductSnapshot {
   name: string;
   shortDescription: string | null;
   description: string | null;
+  /// Nulo mientras no se haya capturado. Llega con la lista de precios.
+  hasPrice: boolean;
   imageCount: number;
   categoryCount: number;
   hasProductType: boolean;
@@ -126,6 +128,20 @@ export function findPending(product: ProductSnapshot): PendingItem[] {
         'El texto de la ficha: medidas, materiales, qué incluye en la caja y ' +
         'garantía. Escríbelo con palabras propias, no copiado de Weber.',
       blocking: false,
+    });
+  }
+
+  if (!product.hasPrice) {
+    pending.push({
+      key: 'precio',
+      missing: 'el precio',
+      title: 'No tiene precio',
+      action:
+        'Captúralo en Comercial, o cárgalo con la lista de precios si viene en ' +
+        'la de Weber. Sin precio no se puede vender.',
+      // Impide publicar. Un producto en la tienda sin precio no se puede
+      // comprar: solo ocupa un lugar en la lista y hace dudar del resto.
+      blocking: true,
     });
   }
 

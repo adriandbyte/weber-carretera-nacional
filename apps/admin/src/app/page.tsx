@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, FileText, FolderTree, ImageOff, PencilLine, Tags } from 'lucide-react';
+import { ArrowRight, FileText, FolderTree, ImageOff, PencilLine, Tag, Tags } from 'lucide-react';
 import { prisma } from '@weber/db';
 import { findPending, pluralize } from '@weber/core';
 import { PageHeader } from '@/components/page-header';
@@ -29,6 +29,8 @@ export default async function DashboardPage() {
         description: true,
         productTypeId: true,
         needsReview: true,
+        status: true,
+        price: true,
         _count: { select: { images: true, categories: true } },
       },
     }),
@@ -44,13 +46,22 @@ export default async function DashboardPage() {
     ]),
   ]);
 
-  const total = productos.length;
-  const revisados = productos.map((producto) => ({
+  // Lo archivado y lo descontinuado sale de la cuenta: nadie va a limpiar un
+  // producto que se decidio no vender. Contandolo, la barra de avance no podria
+  // llegar al 100% ni terminando todo el trabajo.
+  const enTrabajo = productos.filter(
+    (producto) => producto.status !== 'ARCHIVED' && producto.status !== 'DISCONTINUED',
+  );
+  const fuera = productos.length - enTrabajo.length;
+
+  const total = enTrabajo.length;
+  const revisados = enTrabajo.map((producto) => ({
     needsReview: producto.needsReview,
     faltantes: findPending({
       name: producto.name,
       shortDescription: producto.shortDescription,
       description: producto.description,
+      hasPrice: producto.price !== null,
       imageCount: producto._count.images,
       categoryCount: producto._count.categories,
       hasProductType: producto.productTypeId !== null,
@@ -76,34 +87,46 @@ export default async function DashboardPage() {
 
   // Cada tarjeta es un pendiente que impide publicar, en el orden en que
   // conviene atacarlos: primero lo que se redacta, luego lo que se clasifica.
+  //
+  // Las que llevan a la lista lo hacen al filtro de pendientes, que es donde
+  // caen todas: la lista ya no tiene un filtro por campo. La imagen no lleva a
+  // ninguna parte a proposito, porque no bloquea publicar y no esta en ese
+  // filtro; el numero informa y no manda a hacer nada todavia.
   const pendientes = [
     {
       label: 'Sin descripción corta',
       value: cuantosFalta('descripcion-corta'),
       icon: FileText,
-      href: '/productos?filtro=sin-descripcion-corta',
+      href: '/productos?filtro=pendientes',
       note: 'Es la que sale en las listas',
+    },
+    {
+      label: 'Sin precio',
+      value: cuantosFalta('precio'),
+      icon: Tag,
+      href: '/productos?filtro=pendientes',
+      note: 'Sin precio no se puede vender',
     },
     {
       label: 'Sin imagen',
       value: cuantosFalta('imagen'),
       icon: ImageOff,
-      href: '/productos?filtro=sin-imagen',
-      note: 'No venían en el Excel',
+      href: null,
+      note: 'Se suben con la tienda en línea',
     },
     {
       label: 'Sin categoría',
       value: cuantosFalta('categoria'),
       icon: FolderTree,
-      href: '/productos?filtro=sin-categoria',
+      href: '/productos?filtro=pendientes',
       note: 'No aparecen en ninguna sección',
     },
     {
       label: 'Por revisar',
       value: porRevisar,
       icon: PencilLine,
-      href: '/productos?filtro=revision',
-      note: 'Nombre crudo del sistema de Weber',
+      href: '/productos?filtro=pendientes',
+      note: 'Les falta algo o hay que confirmar el nombre',
     },
   ];
 
@@ -111,7 +134,10 @@ export default async function DashboardPage() {
     <div className="max-w-4xl">
       <PageHeader
         title="Resumen"
-        description={`${pluralize(total, 'producto')} en el catálogo, ${publicados} publicados en la tienda.`}
+        description={
+          `${pluralize(total, 'producto')} en el catálogo, ${publicados} publicados en la tienda.` +
+          (fuera > 0 ? ` ${fuera} archivados o descontinuados, fuera de la cuenta.` : '')
+        }
       />
 
       <Card>
@@ -149,7 +175,7 @@ export default async function DashboardPage() {
 
           {porRevisar > 0 && (
             <Button asChild size="lg" className="mt-2">
-              <Link href="/productos?filtro=revision">
+              <Link href="/productos?filtro=pendientes">
                 Continuar revisando
                 <ArrowRight data-icon="inline-end" />
               </Link>
@@ -162,23 +188,35 @@ export default async function DashboardPage() {
         <h2 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
           Qué falta
         </h2>
-        <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {pendientes.map((item) => (
-            <li key={item.label}>
-              <Link href={item.href} className="group block h-full rounded-xl">
-                <Card className="group-hover:ring-primary/40 h-full transition-colors">
-                  <CardContent className="space-y-1">
-                    <item.icon className="text-muted-foreground size-4" />
-                    <span className="font-heading block text-2xl font-semibold tabular-nums">
-                      {item.value}
-                    </span>
-                    <span className="block font-medium">{item.label}</span>
-                    <span className="text-muted-foreground block text-xs">{item.note}</span>
-                  </CardContent>
-                </Card>
-              </Link>
-            </li>
-          ))}
+        <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {pendientes.map((item) => {
+            const tarjeta = (
+              <Card
+                className={`h-full ${item.href ? 'group-hover:ring-primary/40 transition-colors' : ''}`}
+              >
+                <CardContent className="space-y-1">
+                  <item.icon className="text-muted-foreground size-4" />
+                  <span className="font-heading block text-2xl font-semibold tabular-nums">
+                    {item.value}
+                  </span>
+                  <span className="block font-medium">{item.label}</span>
+                  <span className="text-muted-foreground block text-xs">{item.note}</span>
+                </CardContent>
+              </Card>
+            );
+
+            return (
+              <li key={item.label}>
+                {item.href ? (
+                  <Link href={item.href} className="group block h-full rounded-xl">
+                    {tarjeta}
+                  </Link>
+                ) : (
+                  tarjeta
+                )}
+              </li>
+            );
+          })}
         </ul>
       </section>
 

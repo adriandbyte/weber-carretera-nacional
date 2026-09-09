@@ -68,15 +68,16 @@ export default async function ProductoPage({ params }: { params: Promise<{ id: s
 
   if (!product) notFound();
 
-  // Cuenta lo mismo que recorre "Guardar y seguir". Cuando contaba solo
-  // needsReview decia 104 mientras el boton encadenaba 331: el numero de la
-  // cabecera no era el del trabajo que quedaba.
+  // Cuenta los mismos pendientes que bloquean publicar, para que el numero de
+  // la cabecera sea el del trabajo que queda de verdad y no el de una marca
+  // que ya no significa nada.
   const pendingCount = await countPending();
 
   const pending = findPending({
     name: product.name,
     shortDescription: product.shortDescription,
     description: product.description,
+    hasPrice: product.price !== null,
     imageCount: product.images.length,
     categoryCount: product.categories.length,
     hasProductType: product.productTypeId !== null,

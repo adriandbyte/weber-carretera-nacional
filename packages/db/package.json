@@ -14,7 +14,7 @@
     "migrate": "prisma migrate dev",
     "studio": "prisma studio",
     "seed": "tsx scripts/seed.ts",
-    "capitalizar": "tsx scripts/capitalizar-nombres.ts",
+    "nombres": "tsx scripts/generar-nombres.ts",
     "import:inventario": "tsx scripts/import-inventario.ts",
     "import:precios": "tsx scripts/import-precios.ts",
     "typecheck": "tsc --noEmit"

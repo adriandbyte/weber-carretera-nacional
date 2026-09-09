@@ -10,7 +10,21 @@
 // ---------------------------------------------------------------------------
 
 import 'dotenv/config';
-import { defineConfig, env } from 'prisma/config';
+import { defineConfig } from 'prisma/config';
+
+// Prisma 7 ya no lee la URL del bloque datasource del esquema: hay que darla
+// aqui, y por eso el import de dotenv de arriba dejo de ser una comodidad.
+//
+// Va DIRECT_URL antes que DATABASE_URL porque lo que corre por aqui son las
+// ordenes DDL de migrate, y un pooler no las admite. En local las dos apuntan
+// al mismo Postgres, asi que la diferencia solo importa al desplegar.
+//
+// Y se resuelve sin `env()` a proposito: ese ayudante revienta al cargar el
+// archivo si la variable no existe, y el archivo se carga para CUALQUIER orden
+// de Prisma, incluida `generate`, que no se conecta a nada. En un build de
+// Vercel eso tiraba el despliegue entero por una URL que nadie iba a usar.
+// Cuando falta y si hace falta, el que se queja es el comando que la necesita.
+const url = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
@@ -18,13 +32,5 @@ export default defineConfig({
     path: 'prisma/migrations',
     seed: 'tsx scripts/seed.ts',
   },
-  // Prisma 7 ya no lee la URL del bloque datasource del esquema: hay que darla
-  // aqui, y por eso el import de dotenv de arriba dejo de ser una comodidad.
-  //
-  // Va DIRECT_URL y no DATABASE_URL porque lo que corre por aqui son las
-  // ordenes DDL de migrate, y un pooler no las admite. En local las dos
-  // apuntan al mismo Postgres, asi que la diferencia solo importa al desplegar.
-  datasource: {
-    url: process.env.DIRECT_URL ?? env('DATABASE_URL'),
-  },
+  ...(url ? { datasource: { url } } : {}),
 });

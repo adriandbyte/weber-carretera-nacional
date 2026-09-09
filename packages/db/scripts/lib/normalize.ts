@@ -34,7 +34,7 @@ export interface NormalizedProduct {
   colorSlug: string | null;
   sizeSlug: string | null;
   categorySlugs: string[];
-  status: 'DRAFT' | 'DISCONTINUED';
+  status: 'DRAFT' | 'ARCHIVED' | 'DISCONTINUED';
   needsReview: boolean;
   reviewNote: string | null;
   rawCategory: string | null;
@@ -66,6 +66,32 @@ export function slugify(value: string): string {
     .slice(0, 120);
 }
 
+/// Productos que el cliente saco del catalogo, y que no hay forma de deducir de
+/// ningun archivo: en el inventario y en la lista de precios siguen igual que
+/// los vigentes, con su precio y todo.
+///
+/// Los tres Q1200 que Weber ya no surte (2026-09-07): el rojo y el verde de la
+/// generacion vieja, y el Smoke Grey de la nueva. El cliente pidio poder
+/// habilitarlos rapido si vuelven a salir, asi que entran archivados y no
+/// borrados. Quitar un SKU de esta lista lo devuelve a borrador.
+const FUERA_DE_CATALOGO = new Set(['51040001', '51070001', '1502199']);
+
+/// El SKU que sobra de un par que resulto ser el mismo producto cargado dos
+/// veces. Se archiva y no se borra: si mañana resulta que si se vende, vuelve
+/// quitandolo de aqui y conserva su historial.
+///
+/// Los dos que cerro el cliente el 2026-09-08 al contestar
+/// `docs/nombres-repetidos.md`:
+///
+///   36400043  Genesis S-435. Pidio eliminar el que llega de Mexico a $54,900
+///             y quedarse con el de $47,999, el que dice "(Tahilandia)".
+///   1500460   Traveler Compact. "1501741 es el bueno", que es ademas el que
+///             entra en uno de los paquetes de la Grill Academy.
+///
+/// En los dos casos la foto del Excel es identica byte por byte entre los dos
+/// SKU, que era la señal de que era el mismo producto cargado dos veces.
+const REPETIDO_ARCHIVADO = new Set(['36400043', '1500460']);
+
 // --- Tipo de producto ------------------------------------------------------
 
 /// Tipos que son equipo propiamente dicho. El resto son cosas que acompañan
@@ -96,7 +122,12 @@ export function resolveProductType(row: RawRow): string {
   // "Funda para plancha" no es una plancha.
   if (e.includes('ahumador')) return 'ahumador';
   if (d.includes('griddle') || e.includes('plancha')) return 'plancha';
-  if (d.includes('accesorio') || e.includes('accesorio')) return 'accesorio';
+  // "accessory" con dos eses es como lo escribe la lista de precios, donde el
+  // inventario pone "ACCESORIOS". Sin la variante inglesa, una mesa lateral
+  // cae en el ultimo caso de esta funcion y sale clasificada como asador.
+  if (['accesorio', 'accessory', 'accesory'].some((p) => d.includes(p) || e.includes(p))) {
+    return 'accesorio';
+  }
 
   // Ya sin columnas que consultar, el nombre es lo unico que queda.
   if (name.includes('ahumador') || name.includes('smoker')) return 'ahumador';
@@ -222,6 +253,12 @@ export function resolveFormat(row: RawRow, productType: string): string | null {
   if (haystack.includes('empotrable') || /\bsb\d{2}\b/.test(haystack)) return 'empotrable';
   if (haystack.includes('portatil') || haystack.includes('portable')) return 'portatil';
   if (haystack.includes('con carro') || haystack.includes('cart')) return 'de-carro';
+
+  // Los Q chicos son de mesa y los grandes van con carro. Lo dice el modelo y
+  // no la categoria, y hace falta para lo que entra por la lista de precios:
+  // ahi no hay columna de formato, asi que el mismo Q1200 salia portatil desde
+  // el inventario y sin formato desde la lista, con dos nombres distintos.
+  if (/\bq\s?(1000|1200|2200)n?\b/.test(haystack)) return 'portatil';
   return null;
 }
 
@@ -244,6 +281,23 @@ export const COLORS: ColorDef[] = [
     hex: '#2B2B2B',
     patterns: ['negro mate', 'matte black'],
   },
+  // Los tres colores de la generacion nueva del Q1200, con el nombre oficial
+  // que dio el cliente el 2026-09-07. Van antes que negro y rojo porque son
+  // mas especificos: "MDNT BLK" tiene que caer aqui y no en negro.
+  {
+    slug: 'midnight-black',
+    name: 'Midnight Black',
+    hex: '#141618',
+    patterns: ['midnight black', 'midnight', 'mdnt'],
+  },
+  { slug: 'flame-red', name: 'Flame Red', hex: '#C0281F', patterns: ['flame red'] },
+  {
+    slug: 'charcoal-grey',
+    name: 'Charcoal Grey',
+    hex: '#4A4A4A',
+    patterns: ['charcoal grey', 'ch grey'],
+  },
+  { slug: 'titanio', name: 'Titanio', hex: '#8E8E90', patterns: ['titanio', 'titanium'] },
   { slug: 'negro', name: 'Negro', hex: '#1A1A1A', patterns: ['negro', 'black', ' blk'] },
   { slug: 'crimson', name: 'Crimson', hex: '#8C1D1D', patterns: ['crimson'] },
   { slug: 'ivory', name: 'Ivory', hex: '#EFE6D5', patterns: ['ivory', 'marfil'] },
@@ -258,6 +312,9 @@ export const COLORS: ColorDef[] = [
   },
   { slug: 'cobre', name: 'Cobre', hex: '#A65E2E', patterns: ['cobre', 'copper'] },
   { slug: 'verde', name: 'Verde', hex: '#2F5D3A', patterns: ['verde', 'green'] },
+  // El naranja solo existe en la generacion vieja del Q1200, la que vino de la
+  // lista de precios y no del inventario.
+  { slug: 'naranja', name: 'Naranja', hex: '#C1622B', patterns: ['naranja', 'orange'] },
   { slug: 'rojo', name: 'Rojo', hex: '#B3261E', patterns: ['rojo', 'red'] },
   { slug: 'azul', name: 'Azul', hex: '#1E4E8C', patterns: ['azul', 'blue'] },
   {
@@ -273,7 +330,28 @@ export const COLORS: ColorDef[] = [
 /// positivos: "Smokey Joe" no es color humo, "Deep Ocean Blue" si es azul.
 const SERIES_WORDS = SERIES.flatMap((s) => s.patterns).concat(['smokey', 'joe']);
 
+/// Color de los productos cuyo nombre no lo dice, y que solo se sabe porque el
+/// cliente lo dijo.
+///
+/// El Q1200 titanio se llama "Asador Weber Q1200" a secas en la lista de
+/// precios, sin color, y es de los cuatro vigentes de esa generacion
+/// (2026-09-07). Sin esto se queda sin color y su nombre no lo distingue de sus
+/// hermanos, que es justo lo que separa un Q1200 de otro: el color, y con el
+/// color el precio.
+/// Los dos Master-Touch 26" (2026-09-08): llegan con el mismo nombre palabra
+/// por palabra, en el inventario y en la lista de precios, y ninguna columna
+/// dice el color. El cliente lo aclaro por SKU, y es lo unico que los separa,
+/// como en los Q1200: cambia el color y con el color el precio.
+const COLOR_POR_SKU = new Map([
+  ['51060001', 'titanio'],
+  ['1500064', 'negro'],
+  ['1500065', 'smoke'],
+]);
+
 export function resolveColor(row: RawRow, productType: string): string | null {
+  const dicho = COLOR_POR_SKU.get(row.sku);
+  if (dicho) return dicho;
+
   // El color de una espatula no le importa a nadie; solo se captura en
   // equipos, donde es criterio real de compra.
   if (!EQUIPMENT_TYPES.includes(productType)) return null;
@@ -402,6 +480,12 @@ export function normalizeRow(row: RawRow): NormalizedProduct {
   }
 
   const discontinued = fold(clean(row.categoryD)).includes('descontinuado');
+  const fueraDeCatalogo = FUERA_DE_CATALOGO.has(row.sku) || REPETIDO_ARCHIVADO.has(row.sku);
+  // Weber prefija con "Marketing" el material que no se vende: las bolsas
+  // ecologicas vienen por caja de 150 y 200 piezas y son las que la tienda
+  // regala en el mostrador (confirmado por el cliente el 2026-09-07). Entran
+  // archivadas, como los paquetes.
+  const deMostrador = fold(clean(row.name)).startsWith('marketing ');
 
   return {
     sku: row.sku,
@@ -421,7 +505,16 @@ export function normalizeRow(row: RawRow): NormalizedProduct {
     colorSlug: color,
     sizeSlug: size,
     categorySlugs: categories,
-    status: discontinued ? 'DISCONTINUED' : 'DRAFT',
+    // Los paquetes entran archivados por decision del cliente (2026-09-07): no
+    // los quiere en la tienda por ahora. Archivado y no borrado, que es la
+    // diferencia que importa: su nombre trae la receta de lo que incluye, y
+    // recuperar eso si se borra significa volver al Excel.
+    status:
+      discontinued
+        ? 'DISCONTINUED'
+        : productType === 'paquete' || deMostrador || fueraDeCatalogo
+          ? 'ARCHIVED'
+          : 'DRAFT',
     needsReview: notes.length > 0,
     reviewNote: notes.length > 0 ? notes.join('; ') : null,
     rawCategory: clean(row.categoryD) || null,

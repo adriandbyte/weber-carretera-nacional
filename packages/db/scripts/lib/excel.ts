@@ -39,6 +39,16 @@ const COL_NAME = 3;
 const COL_CATEGORY_D = 4;
 const COL_CATEGORY_E = 5;
 
+/// SKU mal capturados en el inventario, con el valor real de la lista de
+/// precios de Weber. Se corrigen al leer y no en la base, porque el Excel es
+/// la fuente: sin esto cada reimportacion volveria a meter el error.
+///
+///   x -> 1501562  el inventario trae la letra "x" en lugar del SKU. La lista
+///                 de precios 2026 tiene 1501562 = PERFORMER CHARCOAL GRILL,
+///                 y es el unico SKU de la lista que no existe con ese nombre
+///                 (el Premium, 1501825, si empata).
+const SKU_FIXES = new Map([['x', '1501562']]);
+
 const cellText = (row: ExcelJS.Row, col: number): string | null => {
   const value = row.getCell(col).value;
   if (value === null || value === undefined) return null;
@@ -69,10 +79,11 @@ export async function readInventory(filePath: string): Promise<InventoryFile> {
   sheet.eachRow((row, rowNumber) => {
     if (rowNumber <= HEADER_ROW) return;
 
-    const sku = cellText(row, COL_SKU);
+    const raw = cellText(row, COL_SKU);
+    const sku = raw ? (SKU_FIXES.get(raw) ?? raw) : null;
     const name = cellText(row, COL_NAME);
     if (!sku || !name) {
-      if (sku || name) skippedRows += 1;
+      if (raw || name) skippedRows += 1;
       return;
     }
 

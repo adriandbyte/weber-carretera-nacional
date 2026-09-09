@@ -13,15 +13,14 @@
 // ---------------------------------------------------------------------------
 
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 import { prisma, Prisma } from '@weber/db';
 import {
   acceptsCompatibility,
+  deriveSeo,
   motivoParaNoPublicar,
   productSchema,
   slugify,
 } from '@weber/core';
-import { findNextPendingId } from '@/lib/productos';
 import {
   prepareImage,
   removeStoredImage,
@@ -37,15 +36,6 @@ export interface FormState {
 }
 
 const toDecimal = (value: string | null) => (value === null ? null : new Prisma.Decimal(value));
-
-/// Corta sin partir palabras a la mitad, que en un resultado de Google se ve
-/// como un error tipografico.
-function truncate(value: string, max: number): string {
-  if (value.length <= max) return value;
-  const cut = value.slice(0, max);
-  const lastSpace = cut.lastIndexOf(' ');
-  return (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd();
-}
 
 /// Convierte el nombre en direccion web y resuelve choques.
 ///
@@ -100,8 +90,7 @@ export async function saveProduct(
 
   const current = await prisma.product.findUnique({
     where: { id: productId },
-    // name es el nombre de antes de guardar: hace de cursor para "y seguir".
-    select: { sku: true, slug: true, publishedAt: true, name: true },
+    select: { sku: true, slug: true, publishedAt: true },
   });
   if (!current) return { ok: false, message: 'El producto ya no existe.' };
 
@@ -153,6 +142,9 @@ export async function saveProduct(
       name: data.name,
       shortDescription: data.shortDescription,
       description: data.description,
+      // El precio del formulario y no el de la base: es el que se esta
+      // guardando en esta misma accion.
+      hasPrice: data.price !== null,
       imageCount,
       categoryCount,
       hasProductType: data.productTypeId !== null,
@@ -190,11 +182,9 @@ export async function saveProduct(
         sizeId: data.sizeId,
         // brandId y stock no se tocan: no estan en la pantalla, asi que
         // conservan el valor que ya tenian.
-        // Los textos para buscadores se derivan de lo que si se captura. Un
-        // campo de SEO en blanco es peor que uno generado: quien limpia el
-        // catalogo no tiene por que saber que escribir ahi.
-        metaTitle: truncate(data.name, 70),
-        metaDescription: data.shortDescription ? truncate(data.shortDescription, 160) : null,
+        // Los textos para buscadores se derivan de lo que si se captura, con
+        // la misma regla que usa el generador de nombres del catalogo.
+        ...deriveSeo(data.name, data.shortDescription),
         needsReview: data.needsReview,
         // La nota del importador deja de tener sentido una vez revisado.
         reviewNote: data.needsReview ? undefined : null,
@@ -233,24 +223,9 @@ export async function saveProduct(
   revalidatePath('/productos');
   revalidatePath(`/productos/${productId}`);
 
-  // A donde se va despues de guardar. Los tres caminos escriben primero: si la
-  // validacion hubiera fallado ya se habria devuelto el error mas arriba, asi
-  // que nunca se navega dejando cambios sin escribir.
-  const intent = formData.get('intent');
-
-  if (intent === 'next') {
-    // Encadenar fichas sin pasar por la lista es lo que convierte limpiar 331
-    // productos en algo que se hace de corrido.
-    const nextId = await findNextPendingId(current.name, productId);
-    // Sin siguiente es que ya no queda nada pendiente. Se vuelve a la lista en
-    // vez de recargar la misma ficha, que se leeria como que no paso nada.
-    redirect(nextId ? `/productos/${nextId}` : '/productos');
-  }
-
-  if (intent === 'exit') {
-    redirect('/productos');
-  }
-
+  // Guardar deja la ficha abierta. Ya no hay caminos que naveguen al terminar:
+  // el recorrido encadenado servia para limpiar 331 fichas de corrido, y lo
+  // que queda son fichas sueltas que se abren desde la lista.
   return { ok: true, message: 'Cambios guardados.' };
 }
 
