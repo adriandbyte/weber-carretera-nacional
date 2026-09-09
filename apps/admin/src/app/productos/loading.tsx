@@ -9,9 +9,11 @@ export default function Loading() {
     <LoadingRegion>
       <PageHeaderSkeleton actions />
 
-      {/* Los tres filtros, con el ancho aproximado de sus etiquetas. */}
+      {/* Los dos filtros fijos, con el ancho aproximado de sus etiquetas.
+          "Pendientes" no se dibuja: solo aparece cuando hay alguno, y llega
+          despues porque su cuenta va en su propio Suspense. */}
       <div className="flex flex-wrap items-center gap-1.5">
-        {[64, 104, 108].map((width, index) => (
+        {[64, 108].map((width, index) => (
           <Skeleton key={index} className="h-8 rounded-lg" style={{ width }} />
         ))}
       </div>
