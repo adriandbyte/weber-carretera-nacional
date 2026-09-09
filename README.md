@@ -147,7 +147,17 @@ Un nombre editado a mano en el panel no se toca: se reporta y se salta.
 Nada se adivina. Un accesorio cuyo sustantivo no está en el diccionario de
 frases se queda como estaba y sale marcado, porque traducir palabra por palabra
 da nombres que nadie firmaría. El script también avisa de los nombres que
-quedan repetidos entre dos SKU, que en la tienda serían indistinguibles.
+quedan repetidos entre dos SKU, que en la tienda serían indistinguibles. Lo
+archivado no cuenta en ese aviso: archivar el que sobra es justo como se cierra
+la mitad de esos casos.
+
+Cuando dos productos llegan del almacén con el nombre **idéntico letra por
+letra**, ninguna regla puede separarlos: el diccionario recibe el mismo texto y
+devuelve el mismo nombre. Para esos existe `NOMBRE_POR_SKU` en
+`scripts/lib/nombres.ts`, que dicta el nombre producto por producto y manda
+sobre cualquier otro camino. Lo que hay ahí son decisiones del cliente, con la
+fecha y el motivo al lado. Y un archivado nunca se queda con la dirección
+limpia: se la lleva el que sí se vende, aunque su nombre no haya cambiado.
 
 `--tabla` escribe `data/salidas/Nombres propuestos - Weber.xlsx` con las 331
 filas, antes y después, lo que quedó pendiente y dos columnas vacías para que el
@@ -226,6 +236,13 @@ pnpm import:precios -- --crear   # precios, y da de alta los 10 que solo están 
 pnpm db:nombres -- --aplicar     # nombres, descripción corta y avisos de revisión
 ```
 
+Reimportar el inventario sobre una base que ya tiene datos **refresca el estado
+del producto salvo que esté publicado**. Archivar es una decisión del cliente
+que vive en el código -paquetes, material de mostrador, lo que Weber ya no
+surte, el SKU que sobra de un par repetido- y tiene que aplicarse también a los
+que ya existían, no solo a los que se crean. Un producto en `ACTIVE` no se
+toca: quien lo publicó desde el panel sabe algo que el Excel no dice.
+
 El orden importa en los dos últimos: `db:nombres` recalcula el aviso de revisión
 de cada producto, y `import:inventario` lo vuelve a poner como venía del Excel.
 Si se corren al revés, quedan 103 productos diciendo "Nombre en mayúsculas,
@@ -249,32 +266,35 @@ Lo que **no** se reproduce y hay que resolver antes de un despliegue de verdad:
   *Sin imagen* en el resumen en vez de dejar un hueco gris en la tienda
 - 201 de las 318 miden menos de 400 px de ancho: sirven de miniatura, no de
   imagen de ficha
-- 170 nombres redactados con el criterio del cuestionario; 324 de los 331 tienen
-  nombre de venta. Los 7 restantes son 4 paquetes de la Grill Academy, cuyo
-  nombre es una lista de SKU, y 3 productos cuyo nombre en español hay que
-  decidir con el cliente
-- 15 productos archivados: los 10 paquetes, 3 Q1200 de colores que Weber ya no
-  surte y 2 cajas de bolsas ecológicas, que son material de mostrador y no
-  producto de tienda. Archivados y no borrados: se reactivan en un clic, y en el
-  caso de los paquetes su nombre trae la receta de lo que incluyen
+- Nombres redactados con el criterio del cuestionario: **los 323 productos
+  activos tienen nombre de venta**. Los 4 que quedan sin redactar son paquetes
+  de la Grill Academy, que están archivados y cuyo nombre es una lista de SKU
+- 17 productos archivados: los 10 paquetes, 3 Q1200 de colores que Weber ya no
+  surte, 2 cajas de bolsas ecológicas -material de mostrador, no producto de
+  tienda- y 2 que eran el mismo producto cargado dos veces, el Genesis S-435 de
+  México y un Traveler Compact. Archivados y no borrados: se reactivan en un
+  clic, y en el caso de los paquetes su nombre trae la receta de lo que incluyen
 - **Cero pendientes.** Ningún producto activo arrastra un aviso de revisión ni
-  le falta nada de lo que impide publicar. Lo único abierto son los 7 nombres
-  repetidos, que el cliente está revisando: no son un campo vacío, son dos SKU
-  distintos que se llaman igual
-- El Q1200 quedó diez veces en el catálogo, como en la lista de precios: 4 con
-  el esquema de SKU nuevo a $6,999 y 6 con el viejo a $7,499. Hay que preguntar
-  cuál generación se vende antes de publicar cualquiera de las dos
+  le falta nada de lo que impide publicar. Lo único abierto es un grupo de
+  nombres repetidos: no es un campo vacío, son tres SKU distintos que se llaman
+  igual
+- El Q1200 son siete productos, uno por color, con el precio de su color: los 4
+  vigentes a $7,499 y los 3 nuevos a $6,999. Los otros 3 colores que traía la
+  lista quedaron archivados porque Weber ya no los surte (confirmado por el
+  cliente el 2026-09-07)
 - 331 con descripción corta, que hoy repite el nombre. Con eso ya no queda
   ningún pendiente que impida publicar: falta la descripción completa en los
   331 y una imagen en 22, y ninguna de las dos bloquea
-- 7 nombres quedan repetidos entre dos SKU. Cinco son los pares que el cliente
-  ya está revisando; los otros dos los descubrió el generador: el Genesis S-435
-  está dos veces (`36400001` y `36400043`, uno era el de Tailandia) y el
-  abrillantador de acero inoxidable tres (`6271`, `8029`, `8039`)
+- De los 7 nombres repetidos que se le preguntaron al cliente
+  (`docs/nombres-repetidos.md`) quedan cerrados 6: dos se archivaron por ser el
+  mismo producto cargado dos veces y cuatro se separaron por color, tamaño,
+  calidad o nombre propio. Sigue abierto el abrillantador de acero inoxidable
+  12 oz, que son tres SKU (`6271`, `8029`, `8039`) y el cliente dice que se
+  diferencian en la presentación, sin decir todavía cuál es cuál
 - 327 productos sin descripción completa. No bloquea publicar y las va a
   redactar el cliente en el panel antes de producción; mientras tanto la
   descripción corta repite el nombre
-- **Los 325 productos activos tienen precio.** 327 salen de la lista 2026, uno
+- **Los 323 productos activos tienen precio.** 327 salen de la lista 2026, uno
   por fila, y los dos tanques de gas de un precio que el cliente dio de palabra
   porque su lista no los trae. Sin precio quedan solo los 12 archivados
 - 10 SKU de la lista no existen en el inventario: los 6 Q1200 con el esquema de

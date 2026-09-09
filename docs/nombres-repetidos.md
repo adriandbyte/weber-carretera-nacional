@@ -1,5 +1,13 @@
 # Siete nombres que quedaron repetidos
 
+> **CONTESTADO en parte el 2026-09-08.** Cerrados dos de los siete: el Genesis
+> S-435 y el Master-Touch 26". De los otros cinco sabemos ya que **son
+> productos distintos** -así que no se archiva ninguno- pero todavía no
+> tenemos las palabras que los separan, que es lo que hace falta para
+> escribirles el nombre. Dos siguen marcados "pendiente revisar" de su lado.
+>
+> Cada grupo lleva abajo lo que contestaron y qué quedó aplicado.
+
 **15 productos, 7 nombres.** Cada nombre lo comparten dos SKU distintos, y en
 un caso tres.
 
@@ -73,10 +81,11 @@ Si de verdad son el mismo modelo con dos orígenes de fabricación, en la tienda
 tiene que quedar uno solo: nadie va a elegir el de $54,900 teniendo el de
 $47,999 al lado, y tener los dos publicados es regalar el margen.
 
-**Su respuesta:**
+**Su respuesta (2026-09-08):** eliminar el SKU que llega de México.
 
-- [ ] Es el mismo. Se queda `______` y archivamos el otro
-- [ ] Son distintos y se diferencian en `__________________________________`
+> Escribieron `36409943`, una clave que no existe en ninguno de los dos
+> archivos. Se tomó como `36400043`, el de $54,900, que es el único parecido.
+> **Queda archivado** y en la tienda va a salir solo el de $47,999.
 
 ## 2 · Asador Portátil de Gas Weber Traveler Compact
 
@@ -93,10 +102,11 @@ Grill Academy.
 
 > **Nuestra propuesta ✅** Nos quedamos con `1501741` y archivamos `1500460`.
 
-**Su respuesta:**
+**Su respuesta (2026-09-08):** "`1501741` es el bueno". De acuerdo con la
+propuesta.
 
-- [ ] ✅ De acuerdo
-- [ ] No: son productos distintos y se diferencian en `__________________`
+> **Aplicado.** `1500460` queda archivado y `1501741` se queda además con la
+> dirección limpia del producto en la tienda.
 
 ## 3 · Encendedor de Carbón
 
@@ -111,10 +121,13 @@ que la foto repetida es un descuido del Excel. Los dos se usan dentro de los
 paquetes de la Grill Academy, así que ninguno parece descontinuado: `7416` va en
 uno y `7447` en dos.
 
-**Su respuesta:**
+**Su respuesta (2026-09-08):** son **diferentes tamaños, grande y chica**.
 
-- [ ] Son distintos. `7416` es `__________________` y `7447` es `__________________`
-- [ ] Es el mismo. Nos quedamos con `______` y archivamos el otro
+> **Aplicado.** Cuál es cuál lo decidió el precio, que es lo único que los
+> separa en los dos archivos: `7416` a $699 es el grande y `7447` a $499 el
+> chico. Quedaron `Encendedor de Carbón Weber Grande` y
+> `Encendedor de Carbón Weber Chico`. Si va al revés, es un cambio de un
+> minuto.
 
 ---
 
@@ -141,10 +154,18 @@ Este es el otro nuevo, y son **tres**, no dos:
 Los tres dicen lo mismo con distintas palabras y los tres son de 12 oz. Es el
 grupo que peor se vería en la tienda: tres renglones iguales con tres precios.
 
-**Su respuesta:**
+**Su respuesta (2026-09-08):** "diferente presentación".
 
-- [ ] Son el mismo. Nos quedamos con `______` y archivamos los otros dos
-- [ ] Son distintos: `______________________________________________`
+> **Es el único que sigue abierto.** Sabemos ya que son tres productos y que
+> ninguno se archiva, pero "diferente presentación" no alcanza para escribir
+> tres nombres distintos: hace falta la palabra de cada uno. ¿Es líquido,
+> crema, aerosol, toallitas? Con tres palabras se cierra:
+>
+> | SKU | Precio | Presentación |
+> | --- | ---: | --- |
+> | `6271` | $599 | `______________` |
+> | `8029` | $499 | `______________` |
+> | `8039` | $549 | `______________` |
 
 ## 5 · Asador de Carbón Weber Master-Touch 26"
 
@@ -158,10 +179,12 @@ como en la lista de precios. Las fotos y los precios son distintos, así que alg
 los diferencia: nos suena a color o a que uno trae el sistema GBS, pero no hay
 ninguna columna que lo diga.
 
-**Su respuesta:**
+**Su respuesta (2026-09-08):** era el color. `1500064` negro y `1500065` Smoke.
 
-- [ ] Se diferencian en `______________________________________________`
-- [ ] Uno ya no se vende: archivar `______`
+> **Aplicado.** Quedaron `Asador de Carbón Weber Master-Touch 26", Negro` y
+> `… 26", Humo`. Va "Humo" y no "Smoke" porque es la traducción que ustedes
+> mismos aprobaron en el cuestionario, y así se llama el color en todo el
+> catálogo. Si lo prefieren en inglés se cambia en un lugar y se regenera.
 
 ## 6 · Juego Portátil de Herramientas 2 Piezas Premium
 
@@ -170,10 +193,12 @@ ninguna columna que lo diga.
 | `3400213` | $1,099 |
 | `6645` | $899 |
 
-**Su respuesta:**
+**Su respuesta (2026-09-08):** "son diferentes productos, descripción similar",
+y nos dieron los dos nombres: `3400213` es el juego de 2 utensilios de asado
+portátiles y `6645` el set de herramientas premium.
 
-- [ ] Se diferencian en `______________________________________________`
-- [ ] Uno ya no se vende: archivar `______`
+> **Aplicado**, con sus palabras: `Juego Portátil Weber de 2 Utensilios de
+> Asado` y `Set Premium de Herramientas Weber`.
 
 ## 7 · Set Pinzas & Espatula Precision Para Asador
 
@@ -186,10 +211,30 @@ Aquí el precio casi se duplica, así que seguramente no son la misma cosa.
 `6771` es además el que va dentro de tres de los paquetes de la Grill Academy, y
 `3401326` no está en ninguno.
 
-**Su respuesta:**
+**Su respuesta (2026-09-08):** "diferente calidad: estándar (de entrada) y
+premium".
 
-- [ ] Se diferencian en `______________________________________________`
-- [ ] Uno ya no se vende: archivar `______`
+> **Aplicado.** El precio dice cuál es cuál: `6771` a $999 es el premium y
+> `3401326` a $539 el de entrada. Quedaron `Set Premium de Pinzas y Espátula
+> Weber para Asador` y `Set Estándar de Pinzas y Espátula Weber para Asador`.
+
+---
+
+# Qué quedó, al 2026-09-08
+
+| # | Grupo | Estado |
+| --- | --- | --- |
+| 1 | Genesis S-435 | `36400043` archivado |
+| 2 | Traveler Compact | `1500460` archivado |
+| 3 | Encendedor de Carbón | Grande y Chico |
+| 4 | Abrillantador 12 oz | **abierto**, falta la presentación de cada uno |
+| 5 | Master-Touch 26" | Negro y Humo |
+| 6 | Juego de herramientas | dos nombres nuevos |
+| 7 | Pinzas y espátula | Estándar y Premium |
+
+Seis de siete cerrados. Del que queda ya sabemos que son tres productos
+distintos, así que **ninguno se archiva y ninguno bloquea nada**: lo único que
+falta es la palabra que los separa.
 
 ---
 

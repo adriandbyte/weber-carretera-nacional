@@ -35,7 +35,7 @@ import ExcelJS from 'exceljs';
 import { prisma } from '../src/index.js';
 import { slugify } from '../../core/src/schemas.js';
 import { deriveSeo } from '../../core/src/format.js';
-import { generarNombre, necesitaRedaccion } from './lib/nombres.js';
+import { generarNombre, necesitaRedaccion, nombreDicho } from './lib/nombres.js';
 import { readInventory } from './lib/excel.js';
 import { capitalizarNombre, quitarPuntoFinal, soloNecesitaCapitalizarse } from './lib/capitalizar.js';
 
@@ -58,6 +58,9 @@ interface Fila {
   nombrePropuesto: string;
   notas: string[];
   confiable: boolean;
+  /// Archivado o descontinuado: no llega a la tienda, asi que no compite por
+  /// el nombre con nadie.
+  fuera: boolean;
   cambia: boolean;
   /// Alguien lo escribio a mano en el panel: manda su version.
   editadoAMano: boolean;
@@ -74,6 +77,7 @@ async function main() {
       sku: true,
       name: true,
       slug: true,
+      status: true,
       publishedAt: true,
       needsReview: true,
       reviewNote: true,
@@ -126,7 +130,13 @@ async function main() {
     // español: "Asador Master-Touch 22" Negro" no esta mal escrito, esta
     // escrito con otro formato, y media docena de asadores con un formato y el
     // resto con otro se lee peor que cualquiera de los dos.
-    if (!esEquipo && soloNecesitaCapitalizarse(original)) {
+    const dicho = nombreDicho(producto.sku);
+    if (dicho) {
+      // Nombre dictado por el cliente para desempatar un par repetido. Va
+      // primero porque los dos gemelos venian ya en español y bien escritos:
+      // el camino de "solo hay que capitalizarlo" los dejaria iguales.
+      propuesto = plano(dicho);
+    } else if (!esEquipo && soloNecesitaCapitalizarse(original)) {
       // Ya estaba en español y con sentido comercial: solo venia gritado.
       propuesto = plano(capitalizarNombre(original));
     } else if (necesitaRedaccion(original, esEquipo)) {
@@ -173,6 +183,7 @@ async function main() {
       nombrePropuesto: propuesto,
       notas,
       confiable,
+      fuera: producto.status === 'ARCHIVED' || producto.status === 'DISCONTINUED',
       cambia: !editadoAMano && !igual(propuesto, producto.name),
       editadoAMano,
     });
@@ -215,32 +226,47 @@ async function main() {
       resumenes.push({ id: producto.id, sku: producto.sku, shortDescription: nombreFinal });
     }
 
-    if (editadoAMano || igual(propuesto, producto.name)) continue;
+    if (editadoAMano) continue;
+
+    const cambiaNombre = !igual(propuesto, producto.name);
 
     // El slug sigue al nombre mientras el producto no se haya publicado. Uno
     // publicado no se toca: su direccion ya circula en enlaces y buscadores.
     if (producto.publishedAt !== null) {
-      cambios.push({
-        id: producto.id,
-        sku: producto.sku,
-        nombre: propuesto,
-        slug: producto.slug,
-        slugAnterior: producto.slug,
-      });
+      if (cambiaNombre) {
+        cambios.push({
+          id: producto.id,
+          sku: producto.sku,
+          nombre: propuesto,
+          slug: producto.slug,
+          slugAnterior: producto.slug,
+        });
+      }
       continue;
     }
 
     const base = slugify(propuesto);
     usados.delete(producto.slug);
-    const slug = !base || usados.has(base) ? `${base}-${producto.sku.toLowerCase()}` : base;
+    // Un archivado nunca se queda con la direccion limpia: se la lleva el que
+    // si se vende. Cuando dos productos comparten nombre y uno se archiva
+    // -que es como se cierran la mitad de los nombres repetidos-, sin esto el
+    // que sobra retiene la URL buena y al vigente le queda el SKU pegado.
+    const fuera = producto.status === 'ARCHIVED' || producto.status === 'DISCONTINUED';
+    const slug =
+      fuera || !base || usados.has(base) ? `${base}-${producto.sku.toLowerCase()}` : base;
     usados.add(slug);
-    cambios.push({
-      id: producto.id,
-      sku: producto.sku,
-      nombre: propuesto,
-      slug,
-      slugAnterior: producto.slug,
-    });
+    // Se recalcula aunque el nombre no cambie: si el par repetido acaba de
+    // liberar la direccion limpia, el vigente se la queda ahora y no en el
+    // siguiente cambio de nombre, que puede no llegar nunca.
+    if (cambiaNombre || slug !== producto.slug) {
+      cambios.push({
+        id: producto.id,
+        sku: producto.sku,
+        nombre: propuesto,
+        slug,
+        slugAnterior: producto.slug,
+      });
+    }
   }
 
   // --- Informe -----------------------------------------------------------
@@ -260,8 +286,12 @@ async function main() {
   // Dos productos con el mismo nombre son indistinguibles en la tienda: el
   // cliente no sabe cual esta comprando. Es la pregunta 6 del cuestionario y
   // el generador puede crear casos nuevos, asi que se revisa cada vez.
+  // Lo archivado no cuenta: dos nombres iguales solo son un problema cuando
+  // los dos productos se ven juntos en la tienda, y archivar el que sobra es
+  // justo como se resuelve la mitad de estos casos.
   const porNombre = new Map<string, string[]>();
   for (const fila of filas) {
+    if (fila.fuera) continue;
     const clave = fila.nombrePropuesto.toLocaleLowerCase('es');
     porNombre.set(clave, [...(porNombre.get(clave) ?? []), fila.sku]);
   }
@@ -323,10 +353,21 @@ async function main() {
     return;
   }
 
+  // Primero los que sueltan una direccion que otro va a ocupar. El slug es
+  // unico en la base, asi que si el que la toma corre antes que el que la
+  // deja, la transaccion entera falla por una colision que en el resultado
+  // final no existe.
+  const reclamados = new Set(cambios.map((c) => c.slug));
+  const ordenados = [...cambios].sort((a, b) => {
+    const suelta = (c: (typeof cambios)[number]) =>
+      c.slug !== c.slugAnterior && reclamados.has(c.slugAnterior) ? 0 : 1;
+    return suelta(a) - suelta(b);
+  });
+
   // En una transaccion: a medias quedaria una parte del catalogo con nombre
   // nuevo y otra con el viejo, sin forma de saber cual es cual.
   await prisma.$transaction([
-    ...cambios.map((c) =>
+    ...ordenados.map((c) =>
       prisma.product.update({
         where: { id: c.id },
         data: { name: c.nombre, slug: c.slug, metaTitle: deriveSeo(c.nombre, null).metaTitle },
@@ -348,9 +389,12 @@ async function main() {
       }),
     ),
   ]);
+  // Se cuentan aparte porque ya no van juntos: una URL puede moverse sin que
+  // el nombre cambie, cuando el producto con el que chocaba se archivo.
+  const movidas = cambios.filter((c) => c.slug !== c.slugAnterior).length;
   console.log(
-    `\nListo: ${cambios.length} nombres reescritos, ${avisos.length} avisos de revisión al día, ` +
-      `${resumenes.length} descripciones cortas.`,
+    `\nListo: ${cambios.length} productos tocados (${movidas} URLs movidas), ` +
+      `${avisos.length} avisos de revisión al día, ${resumenes.length} descripciones cortas.`,
   );
 }
 

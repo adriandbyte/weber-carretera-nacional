@@ -87,11 +87,24 @@ async function main() {
       reviewNote: product.reviewNote,
     };
 
+    // El estado se refresca salvo que el producto ya este publicado.
+    //
+    // Archivar es una decision del cliente que vive en el codigo -paquetes,
+    // material de mostrador, lo que Weber ya no surte, el SKU que sobra de un
+    // par repetido-, asi que tiene que aplicarse tambien a los que ya existian
+    // y no solo a los que se crean. Sin esto la decision solo pegaba en una
+    // base recien migrada, que es como se colo el Genesis duplicado.
+    //
+    // ACTIVE se respeta siempre: quien publico desde el panel sabe algo que el
+    // Excel no dice, y despublicarle un producto a sus espaldas es peor que
+    // dejar un archivado sin aplicar.
+    const status = existing?.status === 'ACTIVE' ? undefined : product.status;
+
     const record = await prisma.product.upsert({
       where: { sku: product.sku },
-      // Al reimportar solo se tocan los atributos derivados. El nombre no,
-      // porque el admin seguramente ya lo redacto para la tienda.
-      update: derived,
+      // Del resto al reimportar solo se tocan los atributos derivados. El
+      // nombre no, porque el admin seguramente ya lo redacto para la tienda.
+      update: { ...derived, status },
       create: {
         sku: product.sku,
         slug: await resolveSlug(product.slug, product.sku),

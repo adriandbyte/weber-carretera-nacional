@@ -101,6 +101,30 @@ const TRADUCCIONES = new Map<string, string>([
   ['CENTER', 'con Centro de Trabajo'],
 ]);
 
+/// Nombre dictado producto por producto, para los pares que llegaron del
+/// almacen con el nombre identico letra por letra.
+///
+/// Ninguna regla puede resolverlos: si el texto de origen es el mismo, el
+/// diccionario de frases devuelve el mismo nombre por definicion. Lo que los
+/// separa solo lo sabe el cliente, y lo dijo el 2026-09-08 al contestar
+/// `docs/nombres-repetidos.md`. La redaccion es nuestra; el criterio, suyo.
+const NOMBRE_POR_SKU = new Map<string, string>([
+  // "Son diferentes productos, descripcion similar", con los dos nombres que
+  // ellos mismos escribieron.
+  ['3400213', 'Juego Portátil Weber de 2 Utensilios de Asado'],
+  ['6645', 'Set Premium de Herramientas Weber'],
+
+  // "Diferente calidad (estandar (de entrada), premium)". Cual es cual lo dice
+  // el precio: $999 el premium, $539 el de entrada.
+  ['6771', 'Set Premium de Pinzas y Espátula Weber para Asador'],
+  ['3401326', 'Set Estándar de Pinzas y Espátula Weber para Asador'],
+
+  // "Diferentes tamanos (Grande, Chica)". Igual que arriba, el precio decide:
+  // $699 el grande, $499 el chico.
+  ['7416', 'Encendedor de Carbón Weber Grande'],
+  ['7447', 'Encendedor de Carbón Weber Chico'],
+]);
+
 /// Palabras inglesas que hay que traducir, no capitalizar. Sirven de alarma:
 /// si una sobrevive al diccionario, el producto sale marcado en vez de salir
 /// medio en ingles.
@@ -422,7 +446,9 @@ function desmontar(producto: ProductoANombrar, femenino: boolean, esEquipo: bool
   texto = texto.replace(REGIONES, ' ');
   // "37 1/2"" son tres palabras para una sola medida, y la columna de tamaño ya
   // la trae como 37.5". Sin esto el nombre sale con las dos.
-  texto = texto.replace(/\b(\d{2})\s+1\/2\s*"?/g, (todo, enteros) => (producto.sizeName ? ' ' : ` ${enteros}.5" `));
+  texto = texto.replace(/\b(\d{2})\s+1\/2\s*"?/g, (_, enteros) =>
+    producto.sizeName ? ' ' : ` ${enteros}.5" `,
+  );
   // El inventario escribe "RUST RESISTANT" y "RUST-RESISTANT" indistintamente.
   texto = texto.replace(/\bRUST[\s-]+RESISTANT\b/gi, ' RUST-RESISTANT ');
 
@@ -512,9 +538,23 @@ function capitalizar(palabra: string): string {
 // Composicion
 // ===========================================================================
 
+/// El nombre que dicto el cliente para este SKU, si dicto alguno.
+///
+/// Se consulta antes que cualquier otro camino, incluido el de "ya venia bien
+/// escrito": los pares repetidos venian bien escritos los dos, con el mismo
+/// nombre, y eso es justo lo que hay que corregir.
+export function nombreDicho(sku: string): string | null {
+  return NOMBRE_POR_SKU.get(sku) ?? null;
+}
+
 /// El nombre comercial del producto, o el original intacto y la lista de lo
 /// que falta para poder escribirlo.
 export function generarNombre(producto: ProductoANombrar): NombreGenerado {
+  // El nombre dictado manda sobre cualquier regla: se puso justo porque la
+  // regla no alcanzaba a distinguir este producto de su gemelo.
+  const dicho = NOMBRE_POR_SKU.get(producto.sku);
+  if (dicho) return { nombre: dicho, notas: [], confiable: true };
+
   const tipo = producto.productTypeSlug ? TIPOS.get(producto.productTypeSlug) : undefined;
   // Funda, Pala, Espatula, Parrilla: el sustantivo de casi todo accesorio es
   // femenino, y el color concuerda con el.

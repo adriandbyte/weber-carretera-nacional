@@ -76,6 +76,22 @@ export function slugify(value: string): string {
 /// borrados. Quitar un SKU de esta lista lo devuelve a borrador.
 const FUERA_DE_CATALOGO = new Set(['51040001', '51070001', '1502199']);
 
+/// El SKU que sobra de un par que resulto ser el mismo producto cargado dos
+/// veces. Se archiva y no se borra: si mañana resulta que si se vende, vuelve
+/// quitandolo de aqui y conserva su historial.
+///
+/// Los dos que cerro el cliente el 2026-09-08 al contestar
+/// `docs/nombres-repetidos.md`:
+///
+///   36400043  Genesis S-435. Pidio eliminar el que llega de Mexico a $54,900
+///             y quedarse con el de $47,999, el que dice "(Tahilandia)".
+///   1500460   Traveler Compact. "1501741 es el bueno", que es ademas el que
+///             entra en uno de los paquetes de la Grill Academy.
+///
+/// En los dos casos la foto del Excel es identica byte por byte entre los dos
+/// SKU, que era la señal de que era el mismo producto cargado dos veces.
+const REPETIDO_ARCHIVADO = new Set(['36400043', '1500460']);
+
 // --- Tipo de producto ------------------------------------------------------
 
 /// Tipos que son equipo propiamente dicho. El resto son cosas que acompañan
@@ -322,7 +338,15 @@ const SERIES_WORDS = SERIES.flatMap((s) => s.patterns).concat(['smokey', 'joe'])
 /// (2026-09-07). Sin esto se queda sin color y su nombre no lo distingue de sus
 /// hermanos, que es justo lo que separa un Q1200 de otro: el color, y con el
 /// color el precio.
-const COLOR_POR_SKU = new Map([['51060001', 'titanio']]);
+/// Los dos Master-Touch 26" (2026-09-08): llegan con el mismo nombre palabra
+/// por palabra, en el inventario y en la lista de precios, y ninguna columna
+/// dice el color. El cliente lo aclaro por SKU, y es lo unico que los separa,
+/// como en los Q1200: cambia el color y con el color el precio.
+const COLOR_POR_SKU = new Map([
+  ['51060001', 'titanio'],
+  ['1500064', 'negro'],
+  ['1500065', 'smoke'],
+]);
 
 export function resolveColor(row: RawRow, productType: string): string | null {
   const dicho = COLOR_POR_SKU.get(row.sku);
@@ -456,7 +480,7 @@ export function normalizeRow(row: RawRow): NormalizedProduct {
   }
 
   const discontinued = fold(clean(row.categoryD)).includes('descontinuado');
-  const fueraDeCatalogo = FUERA_DE_CATALOGO.has(row.sku);
+  const fueraDeCatalogo = FUERA_DE_CATALOGO.has(row.sku) || REPETIDO_ARCHIVADO.has(row.sku);
   // Weber prefija con "Marketing" el material que no se vende: las bolsas
   // ecologicas vienen por caja de 150 y 200 piezas y son las que la tienda
   // regala en el mostrador (confirmado por el cliente el 2026-09-07). Entran
