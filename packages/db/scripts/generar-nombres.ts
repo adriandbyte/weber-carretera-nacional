@@ -37,7 +37,11 @@ import { slugify } from '../../core/src/schemas.js';
 import { deriveSeo } from '../../core/src/format.js';
 import { generarNombre, necesitaRedaccion, nombreDicho } from './lib/nombres.js';
 import { readInventory } from './lib/excel.js';
-import { capitalizarNombre, quitarPuntoFinal, soloNecesitaCapitalizarse } from './lib/capitalizar.js';
+import {
+  capitalizarNombre,
+  quitarPuntoFinal,
+  soloNecesitaCapitalizarse,
+} from './lib/capitalizar.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(here, '../../..');
@@ -94,7 +98,8 @@ async function main() {
   });
 
   const filas: Fila[] = [];
-  const cambios: { id: string; sku: string; nombre: string; slug: string; slugAnterior: string }[] = [];
+  const cambios: { id: string; sku: string; nombre: string; slug: string; slugAnterior: string }[] =
+    [];
   const avisos: { id: string; needsReview: boolean; reviewNote: string | null }[] = [];
   /// Productos que no vienen del inventario, y que por lo tanto no le tocan a
   /// este script.
@@ -126,15 +131,17 @@ async function main() {
     let notas: string[] = [];
     let confiable = true;
 
-    // El equipo va siempre por la plantilla, aunque su nombre ya estuviera en
-    // español: "Asador Master-Touch 22" Negro" no esta mal escrito, esta
-    // escrito con otro formato, y media docena de asadores con un formato y el
-    // resto con otro se lee peor que cualquiera de los dos.
+    // Un nombre dictado por el cliente para desempatar un par repetido va
+    // antes que todo lo demas: los dos gemelos vienen ya en español y bien
+    // escritos, asi que el camino de "solo hay que capitalizarlo" los dejaria
+    // igual de indistinguibles.
+    //
+    // Despues, el equipo va siempre por la plantilla aunque su nombre ya
+    // estuviera en español: "Asador Master-Touch 22" Negro" no esta mal
+    // escrito, esta escrito con otro formato, y media docena de asadores con
+    // un formato y el resto con otro se lee peor que cualquiera de los dos.
     const dicho = nombreDicho(producto.sku);
     if (dicho) {
-      // Nombre dictado por el cliente para desempatar un par repetido. Va
-      // primero porque los dos gemelos venian ya en español y bien escritos:
-      // el camino de "solo hay que capitalizarlo" los dejaria iguales.
       propuesto = plano(dicho);
     } else if (!esEquipo && soloNecesitaCapitalizarse(original)) {
       // Ya estaba en español y con sentido comercial: solo venia gritado.
@@ -203,7 +210,7 @@ async function main() {
     const aviso = motivos.length > 0 ? motivos.join('; ') : null;
     if (
       !editadoAMano &&
-      (aviso !== producto.reviewNote || (motivos.length > 0) !== producto.needsReview)
+      (aviso !== producto.reviewNote || motivos.length > 0 !== producto.needsReview)
     ) {
       avisos.push({ id: producto.id, needsReview: motivos.length > 0, reviewNote: aviso });
     }
@@ -300,18 +307,26 @@ async function main() {
   // Los que hay que redactar y no se pudo: el generador se nego a inventarles
   // un nombre. Son la lista de trabajo pendiente, asi que no pueden quedar
   // escondidos entre los 197 que no se tocan por estar ya bien.
-  const sinPropuesta = filas.filter((f) => f.nombrePropuesto === f.nombreOriginal && f.notas.length > 0);
+  const sinPropuesta = filas.filter(
+    (f) => f.nombrePropuesto === f.nombreOriginal && f.notas.length > 0,
+  );
 
   console.log('\nResumen');
   console.log(`  Nombres reescritos:        ${tocados.length}`);
   console.log(`  Sin nombre que proponer:   ${sinPropuesta.length}`);
   console.log(`  Editados a mano, intactos: ${aMano.length}`);
-  console.log(`  Ya redactados, sin tocar:  ${filas.length - tocados.length - sinPropuesta.length - aMano.length}`);
-  console.log(`  URLs que se mueven:        ${cambios.filter((c) => c.slug !== c.slugAnterior).length}`);
+  console.log(
+    `  Ya redactados, sin tocar:  ${filas.length - tocados.length - sinPropuesta.length - aMano.length}`,
+  );
+  console.log(
+    `  URLs que se mueven:        ${cambios.filter((c) => c.slug !== c.slugAnterior).length}`,
+  );
   console.log(`  Marcados para revisión:    ${marcados.length}`);
   console.log(`  Avisos de revisión al día: ${avisos.length}`);
   console.log(`  Descripciones cortas:      ${resumenes.length}`);
-  console.log(`  Fuera del inventario:      ${ajenos.length}${ajenos.length > 0 ? ` (${ajenos.join(', ')})` : ''}`);
+  console.log(
+    `  Fuera del inventario:      ${ajenos.length}${ajenos.length > 0 ? ` (${ajenos.join(', ')})` : ''}`,
+  );
 
   if (sinPropuesta.length > 0) {
     console.log('\nSin nombre que proponer, se quedan como estaban:');
@@ -366,29 +381,38 @@ async function main() {
 
   // En una transaccion: a medias quedaria una parte del catalogo con nombre
   // nuevo y otra con el viejo, sin forma de saber cual es cual.
-  await prisma.$transaction([
-    ...ordenados.map((c) =>
-      prisma.product.update({
-        where: { id: c.id },
-        data: { name: c.nombre, slug: c.slug, metaTitle: deriveSeo(c.nombre, null).metaTitle },
-      }),
-    ),
-    ...avisos.map((a) =>
-      prisma.product.update({
-        where: { id: a.id },
-        data: { needsReview: a.needsReview, reviewNote: a.reviewNote },
-      }),
-    ),
-    ...resumenes.map((r) =>
-      prisma.product.update({
-        where: { id: r.id },
-        data: {
-          shortDescription: r.shortDescription,
-          ...deriveSeo(r.shortDescription, r.shortDescription),
-        },
-      }),
-    ),
-  ]);
+  await prisma.$transaction(
+    [
+      ...ordenados.map((c) =>
+        prisma.product.update({
+          where: { id: c.id },
+          data: { name: c.nombre, slug: c.slug, metaTitle: deriveSeo(c.nombre, null).metaTitle },
+        }),
+      ),
+      ...avisos.map((a) =>
+        prisma.product.update({
+          where: { id: a.id },
+          data: { needsReview: a.needsReview, reviewNote: a.reviewNote },
+        }),
+      ),
+      ...resumenes.map((r) =>
+        prisma.product.update({
+          where: { id: r.id },
+          data: {
+            shortDescription: r.shortDescription,
+            ...deriveSeo(r.shortDescription, r.shortDescription),
+          },
+        }),
+      ),
+    ],
+    // El limite por defecto son 5 segundos, y esto son casi setecientas
+    // sentencias. Contra el Postgres local sobra; contra uno en la nube cada
+    // una paga su viaje de red y la transaccion entera se pasaba del limite,
+    // asi que no se aplicaba nada. El tiempo no es el problema aqui: es un
+    // script que corre a mano, y lo que hay que proteger es que todo el
+    // catalogo quede con la misma version de los nombres.
+    { timeout: 120_000, maxWait: 20_000 },
+  );
   // Se cuentan aparte porque ya no van juntos: una URL puede moverse sin que
   // el nombre cambie, cuando el producto con el que chocaba se archivo.
   const movidas = cambios.filter((c) => c.slug !== c.slugAnterior).length;
@@ -426,9 +450,7 @@ async function escribirTabla(filas: Fila[], repetidos: [string, string[]][]): Pr
       sku: fila.sku,
       antes: fila.nombreOriginal,
       despues:
-        fila.nombrePropuesto === fila.nombreOriginal
-          ? 'se queda igual'
-          : fila.nombrePropuesto,
+        fila.nombrePropuesto === fila.nombreOriginal ? 'se queda igual' : fila.nombrePropuesto,
       notas: notas.join('; '),
     });
     agregada.alignment = { vertical: 'top', wrapText: true };

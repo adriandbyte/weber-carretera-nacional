@@ -75,10 +75,14 @@ async function main() {
 
   // En una transaccion: a medio camino quedarian unas URLs con la regla nueva y
   // otras con la vieja, que es peor que no haber empezado.
+  // El limite por defecto son 5 segundos, que solo alcanzan contra un Postgres
+  // local: en la nube cada sentencia paga su viaje de red y cientos de updates
+  // se pasan del limite sin aplicar nada.
   await prisma.$transaction(
     cambios.map((cambio) =>
       prisma.product.update({ where: { id: cambio.id }, data: { slug: cambio.a } }),
     ),
+    { timeout: 120_000, maxWait: 20_000 },
   );
 
   const despues = await prisma.product.findMany({ select: { slug: true } });

@@ -188,6 +188,18 @@ o no `BLOB_READ_WRITE_TOKEN` en el entorno:
 resuelven. Antes de poner el panel en una URL para que alguien más trabaje, hay
 que configurar Blob.
 
+**El store de Blob tiene que ser público**, y hay que acertar al crearlo: el
+modo de acceso es permanente y no hay ajuste que lo cambie después, solo crear
+otro store. Con uno privado, la importación se cae en la primera foto
+(`Cannot use public access on a private store`). Y no es un tecnicismo del
+importador: un store privado obliga a servir cada imagen a través de una
+función con autenticación, y los buscadores no pueden indexar nada de eso, que
+es lo contrario de para qué existe este sitio.
+
+```bash
+vercel blob create-store weber-imagenes --access public
+```
+
 ### Tamaños y rendimiento
 
 Las imágenes se guardan una sola vez, en su tamaño de origen, con su ancho y
@@ -221,7 +233,7 @@ dice: `0 imágenes nuevas, 0 ya existentes, 322 movidas a la nube`.
 Esto importa porque el fallo sería silencioso: la ruta interna es idéntica en
 disco y en la nube, así que sin esa comprobación el importador diría "322 ya
 existentes" con toda normalidad y las dejaría apuntando a una ruta muerta. La
-decisión vive en `isInStore()` y tiene pruebas.
+decisión vive en `isInStore()`.
 
 ## Llevar el catálogo a otra base
 
