@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ImageOff, Plus, Search } from 'lucide-react';
 import { prisma, type Prisma } from '@weber/db';
 import { formatMoney, pluralize, STATUS_LABEL } from '@weber/core';
-import { PENDING_WHERE } from '@/lib/productos';
+import { PENDING_WHERE, countPending } from '@/lib/productos';
 import { Pagination } from '@/components/pagination';
 import { PageHeader } from '@/components/page-header';
 import { ProductTableSkeleton } from '@/components/skeletons';
@@ -31,13 +31,16 @@ export const dynamic = 'force-dynamic';
 
 const PAGE_SIZE = 50;
 
-/// Dos estados y no una lista de filtros: el catalogo completo, o lo que le
-/// falta algo.
+/// Tres vistas, y solo dos siempre visibles: el catalogo, lo archivado, y los
+/// pendientes cuando hay pendientes.
 ///
 /// Eran nueve, y tenian sentido cuando cada campo del catalogo estaba vacio en
 /// cientos de productos y habia que atacarlos por tandas. Con el catalogo
 /// cargado, siete de esos filtros devuelven cero o devuelven todo, y una fila
-/// de botones donde solo uno hace algo se lee como que el panel esta roto.
+/// de botones donde solo uno hace algo se lee como que el panel esta roto. Esa
+/// misma razon es la que esconde "Pendientes" cuando esta en cero, en vez de
+/// borrarlo: el trabajo de capturar apenas empieza y cualquier ficha guardada
+/// a medias vuelve a caer ahi.
 ///
 /// "Pendientes" es la misma condicion que cuenta la cabecera de la ficha y la
 /// misma que decide si un producto se puede publicar: PENDING_WHERE.
@@ -105,6 +108,67 @@ const countProducts = cache((filterKey: string, search: string) =>
 );
 
 type Query = { filterKey: string; sortKey: string; search: string; page: number };
+
+/// Un filtro de la barra. La busqueda viaja con el: sin esto, buscar "genesis"
+/// y pulsar otro filtro perdia el termino sin avisar, y la lista que salia
+/// parecia el resultado de la busqueda.
+function FilterLink({
+  filterKey,
+  active,
+  sortKey,
+  search,
+  label,
+}: {
+  filterKey: string;
+  active: string;
+  sortKey: string;
+  search: string;
+  label?: string;
+}) {
+  const query = new URLSearchParams({
+    filtro: filterKey,
+    orden: sortKey,
+    ...(search ? { q: search } : {}),
+  });
+
+  return (
+    <Button
+      asChild
+      variant={filterKey === active ? 'default' : 'outline'}
+      aria-current={filterKey === active ? 'page' : undefined}
+    >
+      <Link href={`/productos?${query}`}>{label ?? FILTERS[filterKey]!.label}</Link>
+    </Button>
+  );
+}
+
+/// "Pendientes" con su cuenta, y solo si hay alguno.
+///
+/// Se muestra tambien cuando esta seleccionado aunque devuelva cero: si el
+/// filtro activo desapareciera de la barra, la pantalla diria "0 productos"
+/// sin nada marcado y nadie sabria de donde salio esa lista vacia.
+async function PendingFilterLink({
+  active,
+  sortKey,
+  search,
+}: {
+  active: string;
+  sortKey: string;
+  search: string;
+}) {
+  const total = await countPending();
+  if (total === 0 && active !== 'pendientes') return null;
+
+  return (
+    <FilterLink
+      filterKey="pendientes"
+      active={active}
+      sortKey={sortKey}
+      search={search}
+      label={`Pendientes ${total}`}
+    />
+  );
+}
 
 /// Va dentro del encabezado, en su propio Suspense: es una consulta mas y no
 /// tiene por que retrasar el titulo ni los filtros.
@@ -304,31 +368,25 @@ export default async function ProductosPage({
         }
       />
 
-      {/* Los dos son navegacion, no un control de formulario: cada uno tiene su
-          URL. Por eso son enlaces con el aspecto de boton y no un interruptor,
-          que ademas perderia el poder abrirlos en otra pestaña. */}
+      {/* Son navegacion, no un control de formulario: cada uno tiene su URL.
+          Por eso son enlaces con el aspecto de boton y no un interruptor, que
+          ademas perderia el poder abrirlos en otra pestaña. */}
       <div className="flex flex-wrap items-center gap-1.5">
-        {Object.entries(FILTERS).map(([key, filter]) => (
-          <Button
-            key={key}
-            asChild
-            variant={key === filterKey ? 'default' : 'outline'}
-            aria-current={key === filterKey ? 'page' : undefined}
-          >
-            {/* La busqueda viaja con el filtro. Sin esto, buscar "genesis" y
-                pulsar "Sin imagen" perdia el termino sin avisar, y la lista
-                que salia parecia el resultado de la busqueda. */}
-            <Link
-              href={`/productos?${new URLSearchParams({
-                filtro: key,
-                orden: sortKey,
-                ...(search ? { q: search } : {}),
-              })}`}
-            >
-              {filter.label}
-            </Link>
-          </Button>
-        ))}
+        <FilterLink filterKey="todos" active={filterKey} sortKey={sortKey} search={search} />
+        {/* "Pendientes" solo existe cuando hay pendientes. Un boton que
+            siempre devuelve cero se lee como que el panel esta roto, y fue
+            justo la razon de recortar los nueve filtros que habia. Pero
+            tampoco se borra: en cuanto alguien quite un precio, borre una
+            categoria o cree un producto a medias, ese producto vuelve a estar
+            pendiente y este es el unico sitio donde se encuentra.
+
+            Va en su propio Suspense para no retrasar el resto de la barra por
+            una cuenta, y con su numero al lado: si aparece, lo que importa es
+            cuantos son. */}
+        <Suspense fallback={null}>
+          <PendingFilterLink active={filterKey} sortKey={sortKey} search={search} />
+        </Suspense>
+        <FilterLink filterKey="archivados" active={filterKey} sortKey={sortKey} search={search} />
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
