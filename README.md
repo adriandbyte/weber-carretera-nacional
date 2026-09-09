@@ -79,11 +79,9 @@ Es idempotente. Al reimportar:
 
 Todo entra como borrador. Nada aparece en la tienda hasta publicarlo.
 
-Para revisar la normalización sin tocar la base:
-
-```bash
-pnpm --filter @weber/db exec tsx scripts/analyze-inventario.ts
-```
+Qué corre cada script y en qué orden está en
+[`packages/db/scripts/README.md`](packages/db/scripts/README.md), junto con
+dónde vive cada decisión del cliente.
 
 ### Lista de precios
 
@@ -268,6 +266,42 @@ Lo que **no** se reproduce y hay que resolver antes de un despliegue de verdad:
 | Imágenes | Sin `BLOB_READ_WRITE_TOKEN` viven en `data/imagenes/` del disco que importó, así que en un despliegue esas URLs no resuelven. Hay que crear el Blob store **antes** de importar |
 | Panel | Sin `ADMIN_PASSWORD` el panel responde 503 en producción. Nunca queda abierto, pero tampoco entra nadie |
 
+## Lo que decidió el cliente
+
+Se le preguntó por escrito y contestó en dos rondas. Cada decisión está
+aplicada en el código, con su fecha y su motivo al lado, para que el catálogo
+se pueda reconstruir sin volver a preguntar. Aquí queda el resumen; el detalle
+vive donde se aplica.
+
+**Cuestionario del catálogo** (contestado el 2026-09-07). Aprobó la plantilla
+del nombre, el diccionario de abreviaturas, quitar los códigos de región y
+"Tailandia", y los 17 nombres que se le propusieron. `FT` y `CS` se eliminan
+del nombre. `GRIDDLE` se respeta como línea en el nombre del producto, pero la
+sección del menú se llama **Planchas**. Corrigió los colores: Humo, Azul
+Slate, Verde, Rojo Carmesí, Marfil, Azul Deep Ocean, Stealth y Midnight.
+Las descripciones completas las redacta él en el panel antes de producción, y
+la corta queda como copia del nombre. → `packages/db/scripts/lib/nombres.ts`
+
+**El Q1200** (2026-09-07). Es un solo modelo: cambia el código según el color,
+y con el color el precio. Vigentes a $7,499 el titanio, negro, azul y naranja;
+nuevos a $6,999 el Midnight Black, Flame Red y Charcoal Grey. Los demás
+colores se deshabilitan, para poder reactivarlos rápido si Weber los vuelve a
+surtir. Lo mismo pasa con los Master-Touch. → `lib/normalize.ts`
+
+**Los paquetes de la Grill Academy** (2026-09-07): fuera de la tienda por
+ahora. Archivados y no borrados, porque su nombre trae la receta de lo que
+incluyen. Las bolsas ecológicas no se venden: son las que la tienda regala en
+mostrador. Los dos tanques de gas valen $399 y $1,999, que su lista no traía.
+→ `lib/normalize.ts` e `import-precios.ts`
+
+**Los siete nombres repetidos** (2026-09-08). Seis cerrados: el Genesis S-435
+de México y un Traveler Compact eran el mismo producto cargado dos veces y
+quedan archivados; los otros cuatro se separan por color, tamaño, calidad o
+por el nombre que él escribió. Sigue abierto el abrillantador de acero
+inoxidable 12 oz -`6271`, `8029` y `8039`-, donde dijo "diferente
+presentación" sin decir cuál es cuál, y sin esa palabra no se pueden escribir
+tres nombres distintos. → `NOMBRE_POR_SKU` y `REPETIDO_ARCHIVADO`
+
 ## Estado actual
 
 - 341 productos: 331 del inventario y 10 dados de alta desde la lista de
@@ -297,8 +331,8 @@ Lo que **no** se reproduce y hay que resolver antes de un despliegue de verdad:
 - 331 con descripción corta, que hoy repite el nombre. Con eso ya no queda
   ningún pendiente que impida publicar: falta la descripción completa en los
   331 y una imagen en 22, y ninguna de las dos bloquea
-- De los 7 nombres repetidos que se le preguntaron al cliente
-  (`docs/nombres-repetidos.md`) quedan cerrados 6: dos se archivaron por ser el
+- De los 7 nombres repetidos que se le preguntaron al cliente quedan cerrados
+  6: dos se archivaron por ser el
   mismo producto cargado dos veces y cuatro se separaron por color, tamaño,
   calidad o nombre propio. Sigue abierto el abrillantador de acero inoxidable
   12 oz, que son tres SKU (`6271`, `8029`, `8039`) y el cliente dice que se
