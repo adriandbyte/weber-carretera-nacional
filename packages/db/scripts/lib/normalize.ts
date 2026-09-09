@@ -80,8 +80,8 @@ const FUERA_DE_CATALOGO = new Set(['51040001', '51070001', '1502199']);
 /// veces. Se archiva y no se borra: si mañana resulta que si se vende, vuelve
 /// quitandolo de aqui y conserva su historial.
 ///
-/// Los dos que cerro el cliente el 2026-09-08 al contestar
-/// `docs/nombres-repetidos.md`:
+/// Los dos que cerro el cliente el 2026-09-08, al preguntarle por los siete
+/// nombres que quedaron repetidos entre dos SKU:
 ///
 ///   36400043  Genesis S-435. Pidio eliminar el que llega de Mexico a $54,900
 ///             y quedarse con el de $47,999, el que dice "(Tahilandia)".

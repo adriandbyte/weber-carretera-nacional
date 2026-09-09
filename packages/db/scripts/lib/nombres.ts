@@ -106,8 +106,9 @@ const TRADUCCIONES = new Map<string, string>([
 ///
 /// Ninguna regla puede resolverlos: si el texto de origen es el mismo, el
 /// diccionario de frases devuelve el mismo nombre por definicion. Lo que los
-/// separa solo lo sabe el cliente, y lo dijo el 2026-09-08 al contestar
-/// `docs/nombres-repetidos.md`. La redaccion es nuestra; el criterio, suyo.
+/// separa solo lo sabe el cliente, y lo dijo el 2026-09-08 cuando se le
+/// pregunto por los siete nombres repetidos. La redaccion es nuestra; el
+/// criterio, suyo.
 const NOMBRE_POR_SKU = new Map<string, string>([
   // "Son diferentes productos, descripcion similar", con los dos nombres que
   // ellos mismos escribieron.
