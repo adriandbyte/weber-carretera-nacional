@@ -41,9 +41,28 @@ const PAGE_SIZE = 50;
 ///
 /// "Pendientes" es la misma condicion que cuenta la cabecera de la ficha y la
 /// misma que decide si un producto se puede publicar: PENDING_WHERE.
+///
+/// "Todos" son todos los del catalogo, no los de la base: lo archivado y lo
+/// descontinuado se queda fuera. Son productos que alguien decidio sacar de la
+/// tienda, y mezclarlos con el trabajo del dia hace dudar de cada uno -"¿este
+/// paquete tenia que estar aqui?"- ademas de contradecir el contador, que ya
+/// los excluye.
+///
+/// Pero tienen su propio filtro y no desaparecen: el cliente pidio poder
+/// reactivar rapido los colores del Q1200 si Weber los vuelve a surtir, y el
+/// nombre de los paquetes guarda la receta de lo que incluyen. Un producto que
+/// no se puede encontrar es lo mismo que uno borrado.
+const EN_CATALOGO: Prisma.ProductWhereInput = {
+  status: { notIn: ['ARCHIVED', 'DISCONTINUED'] },
+};
+
 const FILTERS: Record<string, { label: string; where: Prisma.ProductWhereInput }> = {
-  todos: { label: 'Todos', where: {} },
+  todos: { label: 'Todos', where: EN_CATALOGO },
   pendientes: { label: 'Pendientes', where: PENDING_WHERE },
+  archivados: {
+    label: 'Archivados',
+    where: { status: { in: ['ARCHIVED', 'DISCONTINUED'] } },
+  },
 };
 
 const SORTS: Record<string, { label: string; orderBy: Prisma.ProductOrderByWithRelationInput[] }> =

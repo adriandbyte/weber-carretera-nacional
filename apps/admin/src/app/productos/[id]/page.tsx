@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { prisma } from '@weber/db';
 import { acceptsCompatibility, findPending } from '@weber/core';
@@ -15,7 +16,11 @@ export const dynamic = 'force-dynamic';
 /// Forma minima de un dropdown. Ver la nota en las consultas de abajo.
 const OPTION = { id: true, name: true } as const;
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
   const { id } = await params;
   const product = await prisma.product.findUnique({ where: { id }, select: { name: true } });
   return { title: product?.name ?? 'Producto' };
@@ -110,7 +115,7 @@ export default async function ProductoPage({ params }: { params: Promise<{ id: s
       />
 
       <div className="mb-6">
-        <PendingList items={pending} />
+        <PendingList items={pending} needsReview={product.needsReview} status={product.status} />
       </div>
 
       <div>
