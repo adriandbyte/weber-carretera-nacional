@@ -1,8 +1,19 @@
 packages:
   - "apps/*"
   - "packages/*"
+# pnpm 10 no corre los scripts de instalacion de una dependencia si no esta en
+# esta lista. Las de aqui traen binario propio y lo necesitan: sin aprobarlas,
+# cada `pnpm install` -incluido el de Vercel- avisa que los ignoro, y el aviso
+# hay que leerlo cada vez para descartar que esta vez si importaba.
+#
+# sharp funciona igual sin su script porque su binario llega como dependencia
+# opcional del sistema operativo, pero se aprueba para que el dia que ese
+# camino falle recurra a compilar en vez de dejar el panel sin poder optimizar
+# una foto.
 onlyBuiltDependencies:
   - "@prisma/client"
   - "@prisma/engines"
   - prisma
   - esbuild
+  - sharp
+  - unrs-resolver
