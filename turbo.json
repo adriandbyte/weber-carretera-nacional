@@ -9,7 +9,14 @@
       // cachear. Antes no: la tarea corria entera en cada arranque porque su
       // resultado quedaba donde turbo no lo veia.
       "inputs": ["prisma/schema.prisma", "prisma.config.ts"],
-      "outputs": ["src/generated/**"]
+      "outputs": ["src/generated/**"],
+      // Van como passThroughEnv y no como env: el cliente generado no depende
+      // de a que base apunta la URL, asi que meterla en la clave de cache
+      // invalidaria la generacion cada vez que cambia el entorno, sin motivo.
+      // Aqui solo se declaran para que turbo se las pase a Prisma en vez de
+      // esconderselas, y para que un despliegue no avise de variables que la
+      // tarea no iba a recibir.
+      "passThroughEnv": ["DATABASE_URL", "DIRECT_URL"]
     },
     "build": {
       "dependsOn": ["^build", "^generate"],
